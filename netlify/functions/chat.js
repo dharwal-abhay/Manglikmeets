@@ -1,56 +1,92 @@
-export async function handler(event) {
+const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+const json = (statusCode, body) => ({
+  statusCode,
+  headers: {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store'
+  },
+  body: JSON.stringify(body)
+});
+
+const errorResponse = (statusCode, code, message, providerStatus) =>
+  json(statusCode, {
+    error: {
+      code,
+      message,
+      ...(providerStatus ? { providerStatus } : {})
+    }
+  });
+
+exports.handler = async (event) => {
+  if (event.httpMethod !== 'POST') {
+    return errorResponse(405, 'METHOD_NOT_ALLOWED', 'Use POST for this endpoint.');
+  }
+
+  if (!process.env.GEMINI_API_KEY) {
+    return errorResponse(500, 'GEMINI_NOT_CONFIGURED', 'The chat service is not configured.');
+  }
+
+  let message;
   try {
-    const { message } = JSON.parse(event.body);
+    ({ message } = JSON.parse(event.body || '{}'));
+  } catch {
+    return errorResponse(400, 'INVALID_JSON', 'The chat request must contain valid JSON.');
+  }
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+  if (typeof message !== 'string' || !message.trim()) {
+    return errorResponse(400, 'INVALID_MESSAGE', 'Please enter a message before sending.');
+  }
+
+  try {
+    const response = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': process.env.GEMINI_API_KEY
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{
+            text: 'You are Mira, the helpful assistant for Manglik Meets. Be warm, respectful, concise, and helpful with profiles, privacy, and respectful conversations.'
+          }]
         },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: message,
-                },
-              ],
-            },
-          ],
-        }),
-      }
-    );
+        contents: [{
+          role: 'user',
+          parts: [{ text: message.trim().slice(0, 4000) }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 300
+        }
+      })
+    });
 
-    const data = await response.json();
+    const payload = await response.json().catch(() => null);
 
-    // Show the real Gemini error if something went wrong
     if (!response.ok) {
-      console.error("Gemini API Error:", data);
-
-      return {
-        statusCode: response.status,
-        body: JSON.stringify({
-          reply: JSON.stringify(data),
-        }),
-      };
+      const providerMessage = payload?.error?.message || `Gemini returned HTTP ${response.status}.`;
+      return errorResponse(
+        502,
+        'GEMINI_API_ERROR',
+        `Gemini API error (${response.status}): ${providerMessage}`,
+        response.status
+      );
     }
 
-    const reply = data.candidates[0].content.parts[0].text;
+    const reply = payload?.candidates?.[0]?.content?.parts
+      ?.map((part) => part.text)
+      .filter(Boolean)
+      .join('\n')
+      ?.trim();
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ reply }),
-    };
-  } catch (error) {
-    console.error(error);
+    if (!reply) {
+      return errorResponse(502, 'GEMINI_EMPTY_RESPONSE', 'Gemini did not return a text response.');
+    }
 
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        reply: error.message,
-      }),
-    };
+    return json(200, { reply });
+  } catch {
+    return errorResponse(502, 'GEMINI_NETWORK_ERROR', 'Unable to reach the Gemini API. Please try again shortly.');
   }
-}
+};
