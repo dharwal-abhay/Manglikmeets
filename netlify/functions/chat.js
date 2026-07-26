@@ -25,19 +25,31 @@ export async function handler(event) {
 
     const data = await response.json();
 
-    const reply =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Sorry, I couldn't generate a reply.";
+    // Show the real Gemini error if something went wrong
+    if (!response.ok) {
+      console.error("Gemini API Error:", data);
+
+      return {
+        statusCode: response.status,
+        body: JSON.stringify({
+          reply: JSON.stringify(data),
+        }),
+      };
+    }
+
+    const reply = data.candidates[0].content.parts[0].text;
 
     return {
       statusCode: 200,
       body: JSON.stringify({ reply }),
     };
   } catch (error) {
+    console.error(error);
+
     return {
       statusCode: 500,
       body: JSON.stringify({
-        reply: "Something went wrong.",
+        reply: error.message,
       }),
     };
   }
