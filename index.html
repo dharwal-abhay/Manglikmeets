@@ -662,14 +662,6 @@
         messages.scrollTop = messages.scrollHeight;
       };
 
-      const fallbackReply = (text) => {
-        const normalized = text.toLowerCase();
-        if (normalized.includes('privacy')) return 'Your contact details are never shown publicly. You decide what appears on your profile.';
-        if (normalized.includes('join') || normalized.includes('register')) return 'Choose Register at the top of the page, add your details, and then complete your profile.';
-        if (normalized.includes('profile')) return 'The best profiles are honest, warm, and specific. Add a little about your interests and what matters to you.';
-        return 'I can help with joining, profiles, privacy, and navigating Manglik Meets.';
-      };
-
       async function answerChat(text) {
         try {
           const response = await fetch('/.netlify/functions/chat', {
@@ -677,11 +669,31 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: text })
           });
-          if (!response.ok) throw new Error('Chat service is unavailable');
-          const data = await response.json();
+          const responseText = await response.text();
+          let data;
+
+          try {
+            data = responseText ? JSON.parse(responseText) : {};
+          } catch {
+            data = {};
+          }
+
+          if (!response.ok) {
+            const errorMessage = data?.error?.message || `The chat service returned HTTP ${response.status}.`;
+            console.error('Chat function error:', response.status, data);
+            addMessage(errorMessage, 'bot');
+            return;
+          }
+
+          if (!data.reply) {
+            addMessage('The chat service did not return a response. Please try again.', 'bot');
+            return;
+          }
+
           addMessage(data.reply, 'bot');
-        } catch {
-          addMessage(fallbackReply(text), 'bot');
+        } catch (error) {
+          console.error('Chat network error:', error);
+          addMessage('Unable to reach the chat service. Please try again shortly.', 'bot');
         }
       }
 
