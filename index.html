@@ -1,42 +1,704 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Manglik Meets — Meaningful connections</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-  <style>
-    :root{--ink:#222131;--muted:#716b73;--peach:#df914d;--light:#fff9f4;--line:#eee4dd;--rose:#e52c5b}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:transparent;color:var(--ink);font-family:"DM Sans",sans-serif}button,input,textarea{font:inherit}.hero{max-width:1240px;min-height:780px;margin:auto;padding:30px 42px;position:relative;overflow:hidden}.arch{position:absolute;right:50px;top:35px;width:520px;height:700px;border:1px solid #efdcc8;border-radius:260px 260px 0 0;transform:rotate(-9deg);z-index:-1}.astro{position:absolute;color:#dca66b;opacity:.7;pointer-events:none}.crescent{right:426px;top:89px;width:37px;height:37px;border:2px solid #dca66b;border-radius:50%;box-shadow:10px 0 0 -2px rgba(255,255,255,.96)}.star{font-size:18px}.star-a{right:355px;top:112px}.star-b{right:55px;top:213px;font-size:12px}.constellation{right:85px;top:205px;width:125px;height:68px;background:linear-gradient(28deg,transparent 48%,#dab07c 49%,#dab07c 50%,transparent 51%),linear-gradient(145deg,transparent 49%,#dab07c 50%,#dab07c 51%,transparent 52%)}.constellation:before,.constellation:after{content:"";position:absolute;width:5px;height:5px;border:1px solid #dca66b;border-radius:50%;background:#fff}.constellation:before{left:23px;top:25px}.constellation:after{right:20px;top:33px}
-    header{height:70px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:4}.brand{font-family:"Playfair Display",serif;font-size:26px;font-weight:700;letter-spacing:-.7px;display:flex;align-items:center;gap:11px;white-space:nowrap}.brand-mark{width:33px;height:32px;position:relative;color:#d99048}.brand-mark span{position:absolute;font-family:"Playfair Display",serif;font-weight:700}.m-large{font-size:33px;left:0;top:-6px}.m-small{font-size:16px;left:12px;top:12px;color:#ebbd83;background:#fff;padding:1px}nav{display:flex;gap:30px;margin-left:55px}nav a,.login{border:0;background:transparent;color:#69636c;text-decoration:none;font-size:13px;cursor:pointer;padding:0}.register,.submit{border:0;background:var(--peach);color:#fff;border-radius:999px;font-weight:600;cursor:pointer;box-shadow:0 8px 18px rgba(219,137,67,.18)}.register{padding:13px 29px;margin-left:24px}.intro{position:relative;z-index:2;width:48%;padding-top:72px}.eyebrow,.section-kicker{font-size:11px;color:#c58d5d;margin:0 0 12px}.intro h1,.section-title{font-family:"Playfair Display",serif}.intro h1{font-size:49px;line-height:1.12;letter-spacing:-1.5px;margin:0 0 23px}.intro h1 em{color:#df994e;font-style:normal}.intro>p:not(.eyebrow){max-width:420px;font-size:14px;line-height:1.65;color:#65616a}.email-box{display:flex;align-items:center;width:420px;max-width:100%;background:#fff;border-radius:28px;padding:5px 6px 5px 16px;box-shadow:0 13px 28px rgba(87,54,39,.12);margin-top:23px}.email-box input{border:0;outline:0;flex:1;min-width:0;padding:9px;font-size:12px}.submit{padding:12px 24px;font-size:12px;white-space:nowrap}.photo{position:absolute;right:16px;top:85px;width:560px;height:590px;overflow:hidden;border-radius:250px 250px 0 0}.photo img{position:absolute;width:1080px;max-width:none;left:-483px;top:-116px}.photo:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.55),transparent 35%)}.bubble{position:absolute;width:45px;height:45px;border-radius:50%;background:#fff;display:grid;place-items:center;color:var(--rose);box-shadow:0 12px 28px rgba(103,68,53,.12);z-index:3}.b1{right:390px;top:147px}.b2{right:130px;top:145px;background:var(--rose);color:#fff}.b3{right:40px;top:295px}.stats{position:absolute;bottom:35px;left:42px;display:flex;gap:42px;z-index:3}.stat{width:138px}.stat strong{font-family:"Playfair Display",serif;font-size:33px}.stat:nth-child(2) strong{color:#df984d}.stat span{display:block;font-size:11px;line-height:1.4;color:#69636c;margin-top:6px}.profiles{position:absolute;right:310px;bottom:31px;width:310px;z-index:3}.profile{height:76px;background:#fff;border-radius:10px;margin-top:12px;box-shadow:0 12px 24px rgba(73,53,43,.14);display:flex;align-items:center;padding:9px;gap:11px}.avatar{width:57px;height:57px;border-radius:8px;background:#f4b281;display:grid;place-items:center;color:#fff;font-family:"Playfair Display",serif;font-size:21px}.profile b{font-size:12px}.profile small{display:block;color:#999397;font-size:10px;margin-top:4px}.select{margin-left:auto;border:0;background:#f0a150;color:#fff;border-radius:6px;font-size:10px;padding:9px 12px}.match-card{position:absolute;right:0;bottom:46px;width:293px;height:202px;padding:31px 23px;border-radius:17px;background:linear-gradient(135deg,#fffdfb,#eeeef0);box-shadow:0 20px 36px rgba(72,53,45,.19);z-index:4;overflow:hidden}.match-card:before{content:"";position:absolute;width:80px;height:80px;border-radius:24px;background:#f24147;right:-13px;top:-13px;transform:rotate(29deg)}.label{font-size:8px;color:#969196;letter-spacing:.06em}.number{font-size:19px;letter-spacing:1px;font-weight:600;margin-top:8px}.chip{width:46px;height:28px;border-radius:5px;background:linear-gradient(135deg,#f6d29c,#eaae49);position:absolute;left:24px;bottom:62px}.card-bottom{display:flex;justify-content:space-between;margin-top:29px}.card-bottom b{display:block;font-size:12px;margin-top:4px}
-    .sections{max-width:1156px;margin:18px auto 76px;padding:0 42px}.section{padding:64px 0;border-top:1px solid var(--line);scroll-margin-top:15px}.section-title{font-size:34px;line-height:1.12;margin:0 0 12px}.section-copy{font-size:14px;line-height:1.65;color:var(--muted);max-width:570px;margin:0 0 25px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{border:1px solid var(--line);border-radius:15px;padding:19px;background:rgba(255,255,255,.72)}.member-head{display:flex;align-items:center;gap:11px}.member-dot{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#fceade;color:#d07736;font-family:"Playfair Display",serif;font-weight:700}.card h3{font-size:14px;margin:0}.card small{display:block;color:#968f94;font-size:11px;margin-top:3px}.tag{display:inline-block;background:#fff1e3;color:#ce8240;border-radius:999px;font-size:10px;padding:6px 9px;margin-top:15px}.blog{min-height:165px;display:flex;flex-direction:column;justify-content:space-between}.blog h3{font-family:"Playfair Display",serif;font-size:20px;line-height:1.2}.blog a{font-size:12px;color:#d9853d;text-decoration:none;font-weight:600}.privacy{grid-template-columns:repeat(2,1fr)}.privacy .card{display:flex;gap:12px}.icon{color:#d9853d;font-size:18px}.contact{display:grid;grid-template-columns:.85fr 1.15fr;gap:40px}.contact-list{list-style:none;padding:0;font-size:13px;line-height:2;color:var(--muted)}.contact-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.contact-form input,.contact-form textarea,.auth-form input{border:1px solid var(--line);border-radius:9px;padding:12px;outline:0;font-size:13px}.contact-form textarea{grid-column:1/-1;min-height:104px;resize:vertical}.contact-form button{justify-self:start}
-    .modal{display:none;position:fixed;inset:0;background:rgba(36,28,33,.3);align-items:center;justify-content:center;z-index:50}.modal.open{display:flex}.modal-box{background:#fff;border-radius:18px;padding:28px;width:min(390px,calc(100% - 34px));box-shadow:0 25px 70px rgba(29,20,25,.25);text-align:center}.modal-box h2{font-family:"Playfair Display",serif;margin:0 0 8px}.modal-box p{font-size:14px;color:var(--muted);line-height:1.5}.auth-box{text-align:left}.auth-head{display:flex;justify-content:space-between;align-items:center}.auth-close{border:0;background:transparent;font-size:24px;cursor:pointer}.tabs{display:flex;background:#fbf5f0;border-radius:10px;padding:4px;margin:18px 0}.tab{flex:1;border:0;background:transparent;padding:9px;border-radius:7px;color:#827b81;font-size:12px;cursor:pointer}.tab.selected{background:#fff;color:#d9853d;box-shadow:0 3px 9px rgba(129,86,47,.08)}.auth-form{display:none}.auth-form.active{display:block}.auth-form label{display:block;font-size:11px;font-weight:600;margin:12px 0 6px}.auth-form input{width:100%}.forgot{border:0;background:transparent;color:#d9853d;font-size:11px;padding:11px 0 0;cursor:pointer}.auth-form .submit{width:100%;margin-top:18px}.note{text-align:center;font-size:11px!important;color:#979197!important;margin:14px 0 0}
-    .chat-launcher{position:fixed;right:24px;bottom:24px;width:58px;height:58px;border:0;border-radius:50%;background:var(--peach);color:#fff;display:grid;place-items:center;box-shadow:0 13px 28px rgba(169,101,49,.3);cursor:pointer;z-index:40}.chat-launcher svg{width:27px}.pulse{position:absolute;right:0;top:1px;width:12px;height:12px;border:2px solid #fff;border-radius:50%;background:var(--rose)}.chat{display:none;position:fixed;right:24px;bottom:95px;width:min(355px,calc(100vw - 36px));height:440px;background:#fff;border:1px solid var(--line);border-radius:19px;box-shadow:0 24px 60px rgba(69,43,29,.2);z-index:40;overflow:hidden;flex-direction:column}.chat.open{display:flex}.chat-top{padding:16px 17px;background:var(--light);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)}.chat-person{display:flex;gap:10px;align-items:center}.chat-avatar{width:34px;height:34px;border-radius:50%;background:#f2a25b;color:#fff;display:grid;place-items:center;font-family:"Playfair Display",serif}.chat-person b{font-size:13px}.chat-person small{display:block;font-size:10px;color:#5ca470}.chat-close{border:0;background:transparent;font-size:22px;cursor:pointer}.messages{flex:1;overflow:auto;padding:16px;background:linear-gradient(180deg,#fff,#fffcfa)}.message{max-width:84%;width:max-content;padding:10px 12px;border-radius:12px;margin:0 0 10px;font-size:12px;line-height:1.45}.bot{background:#f7eee7;color:#4e484d;border-bottom-left-radius:3px}.user{background:#e39a59;color:#fff;margin-left:auto;border-bottom-right-radius:3px}.quick{display:flex;gap:7px;flex-wrap:wrap;padding:0 16px 11px;background:#fffcfa}.quick button{border:1px solid #efd9c8;color:#bb763d;background:#fff;border-radius:999px;font-size:10px;padding:6px 9px;cursor:pointer}.chat-form{display:flex;padding:11px;border-top:1px solid var(--line);gap:8px}.chat-form input{border:0;outline:0;flex:1;min-width:0;font-size:12px;padding:7px}.chat-form button{border:0;border-radius:50%;background:var(--peach);color:#fff;width:34px;height:34px;cursor:pointer}
-    @media(max-width:860px){nav{display:none}.hero{min-height:1000px;padding:24px}.intro{width:100%;padding-top:45px}.photo{opacity:.48;right:-150px;top:250px}.stats{left:24px;gap:20px}.profiles{right:175px;bottom:135px;transform:scale(.88)}.match-card{right:-40px;bottom:95px;transform:scale(.82)}.sections{padding:0 24px}.cards{grid-template-columns:1fr 1fr}.contact{grid-template-columns:1fr}}@media(max-width:540px){.hero{padding:20px;min-height:1120px}.brand{font-size:21px;gap:7px}.brand-mark{transform:scale(.84);transform-origin:left}.register{margin-left:8px;padding:10px 14px}.login{font-size:11px}.intro h1{font-size:37px}.stats{gap:10px;bottom:24px}.stat{width:102px}.stat strong{font-size:28px}.profiles{right:20px;bottom:190px;transform:scale(.76)}.match-card{right:-66px;bottom:58px;transform:scale(.68)}.sections{padding:0 20px}.section{padding:46px 0}.cards,.privacy,.contact-form{grid-template-columns:1fr}.section-title{font-size:30px}.chat-launcher{right:16px;bottom:16px}.chat{right:16px;bottom:84px;height:410px}}
-  </style>
-</head>
-<body>
-  <main class="hero" id="home"><div class="arch"></div><i class="astro crescent"></i><i class="astro star star-a">✦</i><i class="astro star star-b">✧</i><i class="astro constellation"></i>
-    <header><div class="brand"><span class="brand-mark" aria-hidden="true"><span class="m-large">M</span><span class="m-small">M</span></span>Manglik Meets</div><nav><a href="#home">Home</a><a href="#members">Members</a><a href="#blog">Blog</a><a href="#privacy">Privacy</a><a href="#contact">Contact</a></nav><div><button class="login" data-auth="login">Log In</button><button class="register" data-auth="register">Register</button></div></header>
-    <section class="intro"><p class="eyebrow">A Manglik-first community, shaped with respect</p><h1>Meet someone who <em>understands<br>your values and<br>your journey.</em></h1><p>At Manglik Meets, you can begin with the comfort of being understood. Share your preferences at your own pace and build a connection that feels genuine.</p><form class="email-box" id="join-form"><input required type="email" placeholder="Enter your email to join" aria-label="Your email"><button class="submit">Join Now</button></form></section>
-    <div class="photo"><img src="dating-reference.jpg" alt="Happy couple holding a gift"></div><span class="bubble b1">♡</span><span class="bubble b2">✦</span><span class="bubble b3">♡</span>
-    <div class="stats"><div class="stat"><strong>15k+</strong><span>Members building<br>meaningful connections</span></div><div class="stat"><strong>1,456</strong><span>New members<br>joining every day</span></div><div class="stat"><strong>1M+</strong><span>Conversations started<br>across the community</span></div></div>
-    <div class="profiles"><article class="profile"><span class="avatar">A</span><div><b>Aanya Sharma</b><small>New Delhi, IN</small></div><button class="select">View</button></article><article class="profile"><span class="avatar">R</span><div><b>Rohan Mehta</b><small>Mumbai, IN</small></div><button class="select">View</button></article></div>
-    <aside class="match-card"><span class="label">MATCH COMPATIBILITY</span><div class="number">92% Compatible</div><div class="chip"></div><div class="card-bottom"><div><span class="label">SUGGESTED MATCH</span><b>Aanya &amp; Rohan</b></div><div><span class="label">CONNECTION</span><b>Strong</b></div></div></aside>
-  </main>
-  <div class="sections">
-    <section class="section" id="why-manglik"><p class="section-kicker">Made for your journey</p><h2 class="section-title">A space where Manglik compatibility is already understood</h2><p class="section-copy">No awkward explanations, no pressure to share more than you want. Manglik Meets puts respectful conversation, mutual understanding, and modern matchmaking at the centre.</p><div class="cards"><article class="card"><span class="icon">✦</span><h3>Preferences, your way</h3><small>Choose whether and how to share astrological or family preferences on your profile.</small></article><article class="card"><span class="icon">♡</span><h3>Connection before assumptions</h3><small>Start with interests, values, and intention—then let the conversation unfold naturally.</small></article><article class="card"><span class="icon">◌</span><h3>Family-aware, member-led</h3><small>Keep your profile and conversations in your hands while honouring the things that matter to you.</small></article></div></section>
-    <section class="section" id="members"><p class="section-kicker">Community</p><h2 class="section-title">People here for something genuine</h2><p class="section-copy">Meet members who are open to getting to know someone with care, shared values, and intention.</p><div class="cards"><article class="card"><div class="member-head"><span class="member-dot">A</span><div><h3>Aarav Kapoor</h3><small>Pune · Product designer · 29</small></div></div><span class="tag">Shared values</span></article><article class="card"><div class="member-head"><span class="member-dot">S</span><div><h3>Siya Verma</h3><small>Bengaluru · Researcher · 27</small></div></div><span class="tag">New this week</span></article><article class="card"><div class="member-head"><span class="member-dot">K</span><div><h3>Kabir Singh</h3><small>Chandigarh · Architect · 31</small></div></div><span class="tag">Open to connect</span></article></div></section>
-    <section class="section" id="blog"><p class="section-kicker">From the journal</p><h2 class="section-title">Conversations for the heart</h2><p class="section-copy">Helpful reads for building a thoughtful, modern dating experience.</p><div class="cards"><article class="card blog"><div><small>Dating with intention · 5 min read</small><h3>How to start a conversation that feels natural</h3></div><a href="#contact">Read article →</a></article><article class="card blog"><div><small>Community · 4 min read</small><h3>Making space for tradition and individuality</h3></div><a href="#contact">Read article →</a></article><article class="card blog"><div><small>Wellbeing · 6 min read</small><h3>Green flags to notice when getting to know someone</h3></div><a href="#contact">Read article →</a></article></div></section>
-    <section class="section" id="privacy"><p class="section-kicker">Privacy</p><h2 class="section-title">Your story stays yours</h2><p class="section-copy">Manglik Meets is designed around respectful connection and clear choices about your information.</p><div class="cards privacy"><article class="card"><span class="icon">◌</span><div><h3>You choose what to share</h3><small>Control the details that appear on your profile and who can see them.</small></div></article><article class="card"><span class="icon">⌁</span><div><h3>Private by default</h3><small>Your contact details are not displayed publicly on your profile.</small></div></article><article class="card"><span class="icon">♡</span><div><h3>Respectful community</h3><small>Tools to report, block, and manage conversations are always close at hand.</small></div></article><article class="card"><span class="icon">✦</span><div><h3>Clear controls</h3><small>Review or update your profile information whenever you choose.</small></div></article></div></section>
-    <section class="section" id="contact"><div class="contact"><div><p class="section-kicker">Contact us</p><h2 class="section-title">Let’s make meeting feel more meaningful</h2><p class="section-copy">Have an idea, a question, or feedback for Manglik Meets? We’d love to hear it.</p><ul class="contact-list"><li>◌ Support for members and profiles</li><li>◌ Feedback from the community</li><li>◌ Partnerships and press enquiries</li></ul></div><form class="contact-form" id="contact-form"><input required placeholder="Your name" aria-label="Your name"><input required type="email" placeholder="Email address" aria-label="Email"><textarea required placeholder="How can we help?" aria-label="Message"></textarea><button class="submit">Send message</button></form></div></section>
-  </div>
-  <button class="chat-launcher" id="chat-launcher" aria-label="Open Manglik Meets assistant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.48 8.6 8.6 0 0 1-3.13-.61L4 20l1.18-3.65A7.1 7.1 0 0 1 4 12a8 8 0 0 1 16-.5Z"/><path d="M8 12h.01M12 12h.01M16 12h.01" stroke-linecap="round" stroke-width="2.5"/></svg><i class="pulse"></i></button>
-  <section class="chat" id="chat" aria-label="Manglik Meets assistant"><div class="chat-top"><div class="chat-person"><span class="chat-avatar">M</span><div><b>Mira · Manglik Meets</b><small>● Online now</small></div></div><button class="chat-close" id="chat-close" aria-label="Close chat">×</button></div><div class="messages" id="messages"><div class="message bot">Namaste, I’m Mira. I can help you understand Manglik Meets, shape your profile, and connect at a pace that feels right for you.</div></div><div class="quick"><button type="button">How does Manglik Meets work?</button><button type="button">Profile preferences</button><button type="button">Privacy help</button></div><form class="chat-form" id="chat-form"><input id="chat-input" placeholder="Type your message…" aria-label="Chat message" required><button aria-label="Send message">↑</button></form></section>
-  <div class="modal" id="message-modal"><div class="modal-box"><h2 id="message-title">Welcome to Manglik Meets</h2><p id="message-copy">You’re one step closer to finding a meaningful connection.</p><button class="submit" id="message-close">Done</button></div></div>
-  <div class="modal" id="auth-modal"><div class="modal-box auth-box"><div class="auth-head"><h2 id="auth-title">Welcome back</h2><button class="auth-close" id="auth-close">×</button></div><div class="tabs" id="tabs"><button class="tab selected" data-tab="login">Log In</button><button class="tab" data-tab="register">Register</button></div><form class="auth-form active" id="login-form"><label>Email address</label><input type="email" required placeholder="you@example.com"><label>Password</label><input type="password" required placeholder="Your password"><button class="forgot" type="button" id="forgot">Forgot password?</button><button class="submit">Log In</button><p class="note">A thoughtful space for meaningful connections.</p></form><form class="auth-form" id="register-form"><label>Full name</label><input required placeholder="Your name"><label>Email address</label><input type="email" required placeholder="you@example.com"><label>Create password</label><input type="password" required placeholder="At least 8 characters"><button class="submit">Create my profile</button><p class="note">By joining, you agree to be kind and respectful.</p></form><form class="auth-form" id="reset-form"><p class="note" style="text-align:left">Enter your email and we’ll send a secure reset link.</p><label>Email address</label><input type="email" required placeholder="you@example.com"><button class="submit">Send reset link</button><p class="note"><button class="forgot" type="button" id="back-login">Back to Log In</button></p></form></div></div>
-  <script>
-    const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);const message=(title,copy)=>{$('#message-title').textContent=title;$('#message-copy').textContent=copy;$('#message-modal').classList.add('open')};$('#message-close').onclick=()=>$('#message-modal').classList.remove('open');$('#join-form').onsubmit=e=>{e.preventDefault();message('Welcome to Manglik Meets','You’re one step closer to finding a meaningful connection.')};$('#contact-form').onsubmit=e=>{e.preventDefault();message('Message received','Thank you for getting in touch. Our team will read your message soon.')};
-    const showAuth=kind=>{const reset=kind==='reset';$('#auth-title').textContent=reset?'Reset your password':kind==='login'?'Welcome back':'Create your profile';$('#tabs').style.display=reset?'none':'flex';$$('.tab').forEach(x=>x.classList.toggle('selected',x.dataset.tab===kind));$$('.auth-form').forEach(x=>x.classList.toggle('active',x.id===kind+'-form'));$('#auth-modal').classList.add('open')};$$('[data-auth]').forEach(x=>x.onclick=()=>showAuth(x.dataset.auth));$$('.tab').forEach(x=>x.onclick=()=>showAuth(x.dataset.tab));$('#forgot').onclick=()=>showAuth('reset');$('#back-login').onclick=()=>showAuth('login');$('#auth-close').onclick=()=>$('#auth-modal').classList.remove('open');$$('.auth-form').forEach(form=>form.onsubmit=e=>{e.preventDefault();$('#auth-modal').classList.remove('open');message(form.id==='reset-form'?'Check your inbox':'Welcome to Manglik Meets',form.id==='reset-form'?'If that address belongs to an account, a secure reset link is on its way.':'You’re one step closer to finding a meaningful connection.')});
-    const chat=$('#chat'),messages=$('#messages'),input=$('#chat-input');$('#chat-launcher').onclick=()=>{chat.classList.toggle('open');if(chat.classList.contains('open'))input.focus()};$('#chat-close').onclick=()=>chat.classList.remove('open');const add=(text,kind)=>{const div=document.createElement('div');div.className='message '+kind;div.textContent=text;messages.append(div);messages.scrollTop=messages.scrollHeight};const fallback=text=>{const t=text.toLowerCase();if(t.includes('privacy'))return 'Your contact details are never shown publicly. You decide what appears on your profile.';if(t.includes('join')||t.includes('register'))return 'Choose Register at the top of the page, add your details, and then complete your profile.';if(t.includes('profile'))return 'The best profiles are honest, warm, and specific. Add a little about your interests and what matters to you.';return 'I can help with joining, profiles, privacy, and navigating Manglik Meets.'};async function answer(text){try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})});if(!r.ok)throw 0;const d=await r.json();add(d.reply,'bot')}catch{add(fallback(text),'bot')}}$('#chat-form').onsubmit=e=>{e.preventDefault();const text=input.value.trim();if(!text)return;add(text,'user');input.value='';answer(text)};$$('.quick button').forEach(btn=>btn.onclick=()=>{add(btn.textContent,'user');answer(btn.textContent)});
-  </script>
-</body></html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>
+      Manglik Meets — Meaningful connections
+    </title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+  </head>
+  <body>
+    <main class="hero" id="home">
+      <div class="arch">
+      </div>
+      <i class="astro crescent">
+      </i>
+      <i class="astro star star-a">
+        ✦
+      </i>
+      <i class="astro star star-b">
+        ✧
+      </i>
+      <i class="astro constellation">
+      </i>
+      <header>
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <span class="m-large">
+              M
+            </span>
+            <span class="m-small">
+              M
+            </span>
+          </span>
+          Manglik Meets
+        </div>
+        <nav>
+          <a href="#home">
+            Home
+          </a>
+          <a href="#members">
+            Members
+          </a>
+          <a href="#blog">
+            Blog
+          </a>
+          <a href="#privacy">
+            Privacy
+          </a>
+          <a href="#contact">
+            Contact
+          </a>
+        </nav>
+        <div>
+          <button class="login" data-auth="login">
+            Log In
+          </button>
+          <button class="register" data-auth="register">
+            Register
+          </button>
+        </div>
+      </header>
+      <section class="intro">
+        <p class="eyebrow">
+          A Manglik-first community, shaped with respect
+        </p>
+        <h1>
+          Meet someone who
+          <em>
+            understands
+            <br>
+            your values and
+            <br>
+            your journey.
+          </em>
+        </h1>
+        <p>
+          At Manglik Meets, you can begin with the comfort of being understood. Share your preferences at your own pace and build a connection that feels genuine.
+        </p>
+        <form class="email-box" id="join-form">
+          <input required type="email" placeholder="Enter your email to join" aria-label="Your email">
+          <button class="submit">
+            Join Now
+          </button>
+        </form>
+      </section>
+      <div class="photo">
+        <img src="dating-reference.jpg" alt="Happy couple holding a gift">
+      </div>
+      <span class="bubble b1">
+        ♡
+      </span>
+      <span class="bubble b2">
+        ✦
+      </span>
+      <span class="bubble b3">
+        ♡
+      </span>
+      <div class="stats">
+        <div class="stat">
+          <strong>
+            15k+
+          </strong>
+          <span>
+            Members building
+            <br>
+            meaningful connections
+          </span>
+        </div>
+        <div class="stat">
+          <strong>
+            1,456
+          </strong>
+          <span>
+            New members
+            <br>
+            joining every day
+          </span>
+        </div>
+        <div class="stat">
+          <strong>
+            1M+
+          </strong>
+          <span>
+            Conversations started
+            <br>
+            across the community
+          </span>
+        </div>
+      </div>
+      <div class="profiles">
+        <article class="profile">
+          <span class="avatar">
+            A
+          </span>
+          <div>
+            <b>
+              Aanya Sharma
+            </b>
+            <small>
+              New Delhi, IN
+            </small>
+          </div>
+          <button class="select">
+            View
+          </button>
+        </article>
+        <article class="profile">
+          <span class="avatar">
+            R
+          </span>
+          <div>
+            <b>
+              Rohan Mehta
+            </b>
+            <small>
+              Mumbai, IN
+            </small>
+          </div>
+          <button class="select">
+            View
+          </button>
+        </article>
+      </div>
+      <aside class="match-card">
+        <span class="label">
+          MATCH COMPATIBILITY
+        </span>
+        <div class="number">
+          92% Compatible
+        </div>
+        <div class="chip">
+        </div>
+        <div class="card-bottom">
+          <div>
+            <span class="label">
+              SUGGESTED MATCH
+            </span>
+            <b>
+              Aanya
+              &amp;
+              Rohan
+            </b>
+          </div>
+          <div>
+            <span class="label">
+              CONNECTION
+            </span>
+            <b>
+              Strong
+            </b>
+          </div>
+        </div>
+      </aside>
+    </main>
+    <div class="sections">
+      <section class="section" id="why-manglik">
+        <p class="section-kicker">
+          Made for your journey
+        </p>
+        <h2 class="section-title">
+          A space where Manglik compatibility is already understood
+        </h2>
+        <p class="section-copy">
+          No awkward explanations, no pressure to share more than you want. Manglik Meets puts respectful conversation, mutual understanding, and modern matchmaking at the centre.
+        </p>
+        <div class="cards">
+          <article class="card">
+            <span class="icon">
+              ✦
+            </span>
+            <h3>
+              Preferences, your way
+            </h3>
+            <small>
+              Choose whether and how to share astrological or family preferences on your profile.
+            </small>
+          </article>
+          <article class="card">
+            <span class="icon">
+              ♡
+            </span>
+            <h3>
+              Connection before assumptions
+            </h3>
+            <small>
+              Start with interests, values, and intention—then let the conversation unfold naturally.
+            </small>
+          </article>
+          <article class="card">
+            <span class="icon">
+              ◌
+            </span>
+            <h3>
+              Family-aware, member-led
+            </h3>
+            <small>
+              Keep your profile and conversations in your hands while honouring the things that matter to you.
+            </small>
+          </article>
+        </div>
+      </section>
+      <section class="section" id="members">
+        <p class="section-kicker">
+          Community
+        </p>
+        <h2 class="section-title">
+          People here for something genuine
+        </h2>
+        <p class="section-copy">
+          Meet members who are open to getting to know someone with care, shared values, and intention.
+        </p>
+        <div class="cards">
+          <article class="card">
+            <div class="member-head">
+              <span class="member-dot">
+                A
+              </span>
+              <div>
+                <h3>
+                  Aarav Kapoor
+                </h3>
+                <small>
+                  Pune · Product designer · 29
+                </small>
+              </div>
+            </div>
+            <span class="tag">
+              Shared values
+            </span>
+          </article>
+          <article class="card">
+            <div class="member-head">
+              <span class="member-dot">
+                S
+              </span>
+              <div>
+                <h3>
+                  Siya Verma
+                </h3>
+                <small>
+                  Bengaluru · Researcher · 27
+                </small>
+              </div>
+            </div>
+            <span class="tag">
+              New this week
+            </span>
+          </article>
+          <article class="card">
+            <div class="member-head">
+              <span class="member-dot">
+                K
+              </span>
+              <div>
+                <h3>
+                  Kabir Singh
+                </h3>
+                <small>
+                  Chandigarh · Architect · 31
+                </small>
+              </div>
+            </div>
+            <span class="tag">
+              Open to connect
+            </span>
+          </article>
+        </div>
+      </section>
+      <section class="section" id="blog">
+        <p class="section-kicker">
+          From the journal
+        </p>
+        <h2 class="section-title">
+          Conversations for the heart
+        </h2>
+        <p class="section-copy">
+          Helpful reads for building a thoughtful, modern dating experience.
+        </p>
+        <div class="cards">
+          <article class="card blog">
+            <div>
+              <small>
+                Dating with intention · 5 min read
+              </small>
+              <h3>
+                How to start a conversation that feels natural
+              </h3>
+            </div>
+            <a href="#contact">
+              Read article →
+            </a>
+          </article>
+          <article class="card blog">
+            <div>
+              <small>
+                Community · 4 min read
+              </small>
+              <h3>
+                Making space for tradition and individuality
+              </h3>
+            </div>
+            <a href="#contact">
+              Read article →
+            </a>
+          </article>
+          <article class="card blog">
+            <div>
+              <small>
+                Wellbeing · 6 min read
+              </small>
+              <h3>
+                Green flags to notice when getting to know someone
+              </h3>
+            </div>
+            <a href="#contact">
+              Read article →
+            </a>
+          </article>
+        </div>
+      </section>
+      <section class="section" id="privacy">
+        <p class="section-kicker">
+          Privacy
+        </p>
+        <h2 class="section-title">
+          Your story stays yours
+        </h2>
+        <p class="section-copy">
+          Manglik Meets is designed around respectful connection and clear choices about your information.
+        </p>
+        <div class="cards privacy">
+          <article class="card">
+            <span class="icon">
+              ◌
+            </span>
+            <div>
+              <h3>
+                You choose what to share
+              </h3>
+              <small>
+                Control the details that appear on your profile and who can see them.
+              </small>
+            </div>
+          </article>
+          <article class="card">
+            <span class="icon">
+              ⌁
+            </span>
+            <div>
+              <h3>
+                Private by default
+              </h3>
+              <small>
+                Your contact details are not displayed publicly on your profile.
+              </small>
+            </div>
+          </article>
+          <article class="card">
+            <span class="icon">
+              ♡
+            </span>
+            <div>
+              <h3>
+                Respectful community
+              </h3>
+              <small>
+                Tools to report, block, and manage conversations are always close at hand.
+              </small>
+            </div>
+          </article>
+          <article class="card">
+            <span class="icon">
+              ✦
+            </span>
+            <div>
+              <h3>
+                Clear controls
+              </h3>
+              <small>
+                Review or update your profile information whenever you choose.
+              </small>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section class="section" id="contact">
+        <div class="contact">
+          <div>
+            <p class="section-kicker">
+              Contact us
+            </p>
+            <h2 class="section-title">
+              Let’s make meeting feel more meaningful
+            </h2>
+            <p class="section-copy">
+              Have an idea, a question, or feedback for Manglik Meets? We’d love to hear it.
+            </p>
+            <ul class="contact-list">
+              <li>
+                ◌ Support for members and profiles
+              </li>
+              <li>
+                ◌ Feedback from the community
+              </li>
+              <li>
+                ◌ Partnerships and press enquiries
+              </li>
+            </ul>
+          </div>
+          <form class="contact-form" id="contact-form">
+            <input required placeholder="Your name" aria-label="Your name">
+            <input required type="email" placeholder="Email address" aria-label="Email">
+            <textarea required placeholder="How can we help?" aria-label="Message">
+            </textarea>
+            <button class="submit">
+              Send message
+            </button>
+          </form>
+        </div>
+      </section>
+    </div>
+    <button class="chat-launcher" id="chat-launcher" aria-label="Open Manglik Meets assistant">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M20 11.5a7.5 7.5 0 0 1-8 7.48 8.6 8.6 0 0 1-3.13-.61L4 20l1.18-3.65A7.1 7.1 0 0 1 4 12a8 8 0 0 1 16-.5Z"/>
+        <path d="M8 12h.01M12 12h.01M16 12h.01" stroke-linecap="round" stroke-width="2.5"/>
+      </svg>
+      <i class="pulse">
+      </i>
+    </button>
+    <section class="chat" id="chat" aria-label="Manglik Meets assistant">
+      <div class="chat-top">
+        <div class="chat-person">
+          <span class="chat-avatar">
+            M
+          </span>
+          <div>
+            <b>
+              Mira · Manglik Meets
+            </b>
+            <small>
+              ● Online now
+            </small>
+          </div>
+        </div>
+        <button class="chat-close" id="chat-close" aria-label="Close chat">
+          ×
+        </button>
+      </div>
+      <div class="messages" id="messages">
+        <div class="message bot">
+          Namaste, I’m Mira. I can help you understand Manglik Meets, shape your profile, and connect at a pace that feels right for you.
+        </div>
+      </div>
+      <div class="quick">
+        <button type="button">
+          How does Manglik Meets work?
+        </button>
+        <button type="button">
+          Profile preferences
+        </button>
+        <button type="button">
+          Privacy help
+        </button>
+      </div>
+      <form class="chat-form" id="chat-form">
+        <input id="chat-input" placeholder="Type your message…" aria-label="Chat message" required>
+        <button aria-label="Send message">
+          ↑
+        </button>
+      </form>
+    </section>
+    <div class="modal" id="message-modal">
+      <div class="modal-box">
+        <h2 id="message-title">
+          Welcome to Manglik Meets
+        </h2>
+        <p id="message-copy">
+          You’re one step closer to finding a meaningful connection.
+        </p>
+        <button class="submit" id="message-close">
+          Done
+        </button>
+      </div>
+    </div>
+    <div class="modal" id="auth-modal">
+      <div class="modal-box auth-box">
+        <div class="auth-head">
+          <h2 id="auth-title">
+            Welcome back
+          </h2>
+          <button class="auth-close" id="auth-close">
+            ×
+          </button>
+        </div>
+        <div class="tabs" id="tabs">
+          <button class="tab selected" data-tab="login">
+            Log In
+          </button>
+          <button class="tab" data-tab="register">
+            Register
+          </button>
+        </div>
+        <form class="auth-form active" id="login-form">
+          <label>
+            Email address
+          </label>
+          <input type="email" required placeholder="you@example.com">
+          <label>
+            Password
+          </label>
+          <input type="password" required placeholder="Your password">
+          <button class="forgot" type="button" id="forgot">
+            Forgot password?
+          </button>
+          <button class="submit">
+            Log In
+          </button>
+          <p class="note">
+            A thoughtful space for meaningful connections.
+          </p>
+        </form>
+        <form class="auth-form" id="register-form">
+          <label>
+            Full name
+          </label>
+          <input required placeholder="Your name">
+          <label>
+            Email address
+          </label>
+          <input type="email" required placeholder="you@example.com">
+          <label>
+            Create password
+          </label>
+          <input type="password" required placeholder="At least 8 characters">
+          <button class="submit">
+            Create my profile
+          </button>
+          <p class="note">
+            By joining, you agree to be kind and respectful.
+          </p>
+        </form>
+        <form class="auth-form" id="reset-form">
+          <p class="note" style="text-align:left">
+            Enter your email and we’ll send a secure reset link.
+          </p>
+          <label>
+            Email address
+          </label>
+          <input type="email" required placeholder="you@example.com">
+          <button class="submit">
+            Send reset link
+          </button>
+          <p class="note">
+            <button class="forgot" type="button" id="back-login">
+              Back to Log In
+            </button>
+          </p>
+        </form>
+      </div>
+    </div>
+    <script>
+      const $ = (selector) => document.querySelector(selector);
+      const $$ = (selector) => document.querySelectorAll(selector);
+
+      const openMessage = (title, copy) => {
+        $('#message-title').textContent = title;
+        $('#message-copy').textContent = copy;
+        $('#message-modal').classList.add('open');
+      };
+
+      $('#message-close').onclick = () => $('#message-modal').classList.remove('open');
+      $('#join-form').onsubmit = (event) => {
+        event.preventDefault();
+        openMessage('Welcome to Manglik Meets', 'You are one step closer to finding a meaningful connection.');
+      };
+      $('#contact-form').onsubmit = (event) => {
+        event.preventDefault();
+        openMessage('Message received', 'Thank you for getting in touch. Our team will read your message soon.');
+      };
+
+      const showAuth = (kind) => {
+        const isReset = kind === 'reset';
+        $('#auth-title').textContent = isReset ? 'Reset your password' : kind === 'login' ? 'Welcome back' : 'Create your profile';
+        $('#tabs').style.display = isReset ? 'none' : 'flex';
+        $$('.tab').forEach((tab) => tab.classList.toggle('selected', tab.dataset.tab === kind));
+        $$('.auth-form').forEach((form) => form.classList.toggle('active', form.id === `${kind}-form`));
+        $('#auth-modal').classList.add('open');
+      };
+
+      $$('[data-auth]').forEach((button) => button.onclick = () => showAuth(button.dataset.auth));
+      $$('.tab').forEach((tab) => tab.onclick = () => showAuth(tab.dataset.tab));
+      $('#forgot').onclick = () => showAuth('reset');
+      $('#back-login').onclick = () => showAuth('login');
+      $('#auth-close').onclick = () => $('#auth-modal').classList.remove('open');
+      $$('.auth-form').forEach((form) => form.onsubmit = (event) => {
+        event.preventDefault();
+        $('#auth-modal').classList.remove('open');
+        const isReset = form.id === 'reset-form';
+        openMessage(
+          isReset ? 'Check your inbox' : 'Welcome to Manglik Meets',
+          isReset ? 'If that address belongs to an account, a secure reset link is on its way.' : 'You are one step closer to finding a meaningful connection.'
+        );
+      });
+
+      const chat = $('#chat');
+      const messages = $('#messages');
+      const input = $('#chat-input');
+
+      $('#chat-launcher').onclick = () => {
+        chat.classList.toggle('open');
+        if (chat.classList.contains('open')) input.focus();
+      };
+      $('#chat-close').onclick = () => chat.classList.remove('open');
+
+      const addMessage = (text, kind) => {
+        const message = document.createElement('div');
+        message.className = `message ${kind}`;
+        message.textContent = text;
+        messages.append(message);
+        messages.scrollTop = messages.scrollHeight;
+      };
+
+      const fallbackReply = (text) => {
+        const normalized = text.toLowerCase();
+        if (normalized.includes('privacy')) return 'Your contact details are never shown publicly. You decide what appears on your profile.';
+        if (normalized.includes('join') || normalized.includes('register')) return 'Choose Register at the top of the page, add your details, and then complete your profile.';
+        if (normalized.includes('profile')) return 'The best profiles are honest, warm, and specific. Add a little about your interests and what matters to you.';
+        return 'I can help with joining, profiles, privacy, and navigating Manglik Meets.';
+      };
+
+      async function answerChat(text) {
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+          });
+          if (!response.ok) throw new Error('Chat service is unavailable');
+          const data = await response.json();
+          addMessage(data.reply, 'bot');
+        } catch {
+          addMessage(fallbackReply(text), 'bot');
+        }
+      }
+
+      $('#chat-form').onsubmit = (event) => {
+        event.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        addMessage(text, 'user');
+        input.value = '';
+        answerChat(text);
+      };
+      $$('.quick button').forEach((button) => button.onclick = () => {
+        addMessage(button.textContent, 'user');
+        answerChat(button.textContent);
+      });
+    </script>
+  </body>
+</html>
