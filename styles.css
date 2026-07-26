@@ -426,16 +426,6 @@ nav a,.login {
   margin-top: 8px;
 }
 
-.chip {
-  width: 46px;
-  height: 28px;
-  border-radius: 5px;
-  background: linear-gradient(135deg,#f6d29c,#eaae49);
-  position: absolute;
-  left: 24px;
-  bottom: 62px;
-}
-
 .card-bottom {
   display: flex;
   justify-content: space-between;
