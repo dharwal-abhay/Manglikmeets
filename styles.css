@@ -186,6 +186,31 @@ nav a,.login {
   margin-left: 24px;
 }
 
+.account-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.account-name {
+  color: #69636c;
+  font-size: 12px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logout {
+  border: 1px solid #edcaa8;
+  border-radius: 999px;
+  background: #fff;
+  color: #c57a36;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 10px 16px;
+}
+
 .intro {
   position: relative;
   z-index: 2;
