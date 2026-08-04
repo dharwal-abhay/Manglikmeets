@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   </head>
   <body>
     <main class="hero" id="home">
@@ -54,7 +55,7 @@
             Contact
           </a>
         </nav>
-        <div>
+        <div class="account-actions" id="account-actions">
           <button class="login" data-auth="login">
             Log In
           </button>
@@ -546,11 +547,11 @@
           <label>
             Email address
           </label>
-          <input type="email" required placeholder="you@example.com">
+          <input id="login-email" type="email" required autocomplete="email" placeholder="you@example.com">
           <label>
             Password
           </label>
-          <input type="password" required placeholder="Your password">
+          <input id="login-password" type="password" required autocomplete="current-password" placeholder="Your password">
           <button class="forgot" type="button" id="forgot">
             Forgot password?
           </button>
@@ -565,15 +566,15 @@
           <label>
             Full name
           </label>
-          <input required placeholder="Your name">
+          <input id="register-name" required autocomplete="name" placeholder="Your name">
           <label>
             Email address
           </label>
-          <input type="email" required placeholder="you@example.com">
+          <input id="register-email" type="email" required autocomplete="email" placeholder="you@example.com">
           <label>
             Create password
           </label>
-          <input type="password" required placeholder="At least 8 characters">
+          <input id="register-password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters">
           <button class="submit">
             Create my profile
           </button>
@@ -588,7 +589,7 @@
           <label>
             Email address
           </label>
-          <input type="email" required placeholder="you@example.com">
+          <input id="reset-email" type="email" required autocomplete="email" placeholder="you@example.com">
           <button class="submit">
             Send reset link
           </button>
@@ -603,6 +604,17 @@
     <script>
       const $ = (selector) => document.querySelector(selector);
       const $$ = (selector) => document.querySelectorAll(selector);
+      const supabaseUrl = 'https://ssdjxqwvckysfecjwqcl.supabase.co';
+      const supabasePublishableKey = 'sb_publishable_CUJ_PgBeVlZ6rdpMewBukQ_mE78ahWs';
+      const supabaseClient = window.supabase?.createClient
+        ? window.supabase.createClient(supabaseUrl, supabasePublishableKey, {
+            auth: {
+              persistSession: true,
+              autoRefreshToken: true,
+              detectSessionInUrl: true
+            }
+          })
+        : null;
 
       const openMessage = (title, copy) => {
         $('#message-title').textContent = title;
@@ -611,10 +623,6 @@
       };
 
       $('#message-close').onclick = () => $('#message-modal').classList.remove('open');
-      $('#join-form').onsubmit = (event) => {
-        event.preventDefault();
-        openMessage('Welcome to Manglik Meets', 'You are one step closer to finding a meaningful connection.');
-      };
       $('#contact-form').onsubmit = (event) => {
         event.preventDefault();
         openMessage('Message received', 'Thank you for getting in touch. Our team will read your message soon.');
@@ -629,20 +637,118 @@
         $('#auth-modal').classList.add('open');
       };
 
-      $$('[data-auth]').forEach((button) => button.onclick = () => showAuth(button.dataset.auth));
+      const renderAccountActions = (session) => {
+        const accountActions = $('#account-actions');
+
+        if (!session?.user) {
+          accountActions.innerHTML = `
+            <button class="login" data-auth="login">Log In</button>
+            <button class="register" data-auth="register">Register</button>
+          `;
+          $$('[data-auth]').forEach((button) => button.onclick = () => showAuth(button.dataset.auth));
+          return;
+        }
+
+        const displayName = session.user.user_metadata?.full_name || session.user.email || 'Member';
+        accountActions.replaceChildren();
+
+        const name = document.createElement('span');
+        name.className = 'account-name';
+        name.textContent = `Hi, ${displayName}`;
+
+        const logout = document.createElement('button');
+        logout.className = 'logout';
+        logout.type = 'button';
+        logout.textContent = 'Log Out';
+        logout.onclick = async () => {
+          await supabaseClient.auth.signOut();
+        };
+
+        accountActions.append(name, logout);
+      };
+
+      const requireSupabase = () => {
+        if (supabaseClient) return true;
+        openMessage('Connection unavailable', 'Supabase could not load. Please check your internet connection and refresh the page.');
+        return false;
+      };
+
+      $('#join-form').onsubmit = (event) => {
+        event.preventDefault();
+        showAuth('register');
+        $('#register-email').value = event.currentTarget.querySelector('input').value;
+      };
+
       $$('.tab').forEach((tab) => tab.onclick = () => showAuth(tab.dataset.tab));
       $('#forgot').onclick = () => showAuth('reset');
       $('#back-login').onclick = () => showAuth('login');
       $('#auth-close').onclick = () => $('#auth-modal').classList.remove('open');
-      $$('.auth-form').forEach((form) => form.onsubmit = (event) => {
+      $('#login-form').onsubmit = async (event) => {
         event.preventDefault();
+        if (!requireSupabase()) return;
+
+        const { error } = await supabaseClient.auth.signInWithPassword({
+          email: $('#login-email').value.trim(),
+          password: $('#login-password').value
+        });
+
+        if (error) {
+          openMessage('Unable to log in', error.message);
+          return;
+        }
+
         $('#auth-modal').classList.remove('open');
-        const isReset = form.id === 'reset-form';
+        openMessage('Welcome back', 'Your account is ready to use.');
+      };
+
+      $('#register-form').onsubmit = async (event) => {
+        event.preventDefault();
+        if (!requireSupabase()) return;
+
+        const fullName = $('#register-name').value.trim();
+        const { data, error } = await supabaseClient.auth.signUp({
+          email: $('#register-email').value.trim(),
+          password: $('#register-password').value,
+          options: {
+            data: { full_name: fullName },
+            emailRedirectTo: window.location.origin
+          }
+        });
+
+        if (error) {
+          openMessage('Unable to create account', error.message);
+          return;
+        }
+
+        $('#auth-modal').classList.remove('open');
         openMessage(
-          isReset ? 'Check your inbox' : 'Welcome to Manglik Meets',
-          isReset ? 'If that address belongs to an account, a secure reset link is on its way.' : 'You are one step closer to finding a meaningful connection.'
+          data.session ? 'Welcome to Manglik Meets' : 'Check your email',
+          data.session ? 'Your account has been created.' : 'Open the confirmation email we sent to complete your account setup.'
         );
-      });
+      };
+
+      $('#reset-form').onsubmit = async (event) => {
+        event.preventDefault();
+        if (!requireSupabase()) return;
+
+        const { error } = await supabaseClient.auth.resetPasswordForEmail($('#reset-email').value.trim(), {
+          redirectTo: window.location.origin
+        });
+
+        if (error) {
+          openMessage('Unable to send reset link', error.message);
+          return;
+        }
+
+        $('#auth-modal').classList.remove('open');
+        openMessage('Check your inbox', 'If that address belongs to an account, a secure reset link is on its way.');
+      };
+
+      renderAccountActions(null);
+      if (supabaseClient) {
+        supabaseClient.auth.getSession().then(({ data }) => renderAccountActions(data.session));
+        supabaseClient.auth.onAuthStateChange((_event, session) => renderAccountActions(session));
+      }
 
       const chat = $('#chat');
       const messages = $('#messages');
