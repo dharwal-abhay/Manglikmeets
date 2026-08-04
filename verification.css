@@ -1,0 +1,8 @@
+/* Shared email verification component. It is rendered only in production mode for unverified users. */
+[data-verification-slot][hidden] { display: none !important; }
+.verification-notice { display: flex; align-items: center; justify-content: space-between; gap: 18px; max-width: 1440px; margin: 14px auto 0; padding: 13px 17px; border: 1px solid #edc79d; border-radius: 13px; background: #fff7ed; color: #6f4c32; font-family: "DM Sans", sans-serif; }
+.verification-notice strong { display: block; font-size: 13px; }
+.verification-notice p { margin: 3px 0 0; font-size: 11px; line-height: 1.45; }
+.verification-notice button { flex: 0 0 auto; padding: 9px 11px; border: 0; border-radius: 9px; background: #df914d; color: #fff; font: 700 11px "DM Sans", sans-serif; cursor: pointer; }
+.verification-notice button:disabled { cursor: wait; opacity: .68; }
+@media (max-width: 700px) { .verification-notice { align-items: flex-start; flex-direction: column; margin: 10px 14px 0; } }

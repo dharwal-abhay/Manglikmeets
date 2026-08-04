@@ -10,9 +10,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
+    <link href="verification.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app-config.js"></script>
+    <script src="auth-session.js"></script>
+    <script src="supabase-services.js"></script>
+    <script src="verification.js"></script>
+    <script src="contact-service.js" defer></script>
   </head>
   <body>
+    <div data-verification-slot hidden></div>
     <main class="hero" id="home">
       <div class="arch">
       </div>
@@ -450,14 +457,14 @@
               </li>
             </ul>
           </div>
-          <form class="contact-form" id="contact-form">
-            <input required placeholder="Your name" aria-label="Your name">
-            <input required type="email" placeholder="Email address" aria-label="Email">
-            <textarea required placeholder="How can we help?" aria-label="Message">
-            </textarea>
-            <button class="submit">
-              Send message
-            </button>
+          <form class="contact-form" id="contact-form" novalidate>
+            <input id="contact-name" name="name" required minlength="2" maxlength="100" autocomplete="name" placeholder="Your name" aria-label="Your name">
+            <input id="contact-email" name="email" required type="email" maxlength="254" autocomplete="email" placeholder="Email address" aria-label="Email">
+            <input id="contact-subject" name="subject" required minlength="3" maxlength="160" placeholder="Subject" aria-label="Subject">
+            <textarea id="contact-message" name="message" required minlength="10" maxlength="4000" placeholder="How can we help?" aria-label="Message"></textarea>
+            <input class="contact-honeypot" id="contact-website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+            <button class="submit" id="contact-submit" type="submit">Send message</button>
+            <p class="contact-form-status" id="contact-form-status" role="status" aria-live="polite" hidden></p>
           </form>
         </div>
       </section>
@@ -552,15 +559,25 @@
             Password
           </label>
           <input id="login-password" type="password" required autocomplete="current-password" placeholder="Your password">
+          <label class="remember-me"><input id="remember-login" type="checkbox" checked> Remember me on this device</label>
           <button class="forgot" type="button" id="forgot">
             Forgot password?
           </button>
           <button class="submit">
             Log In
           </button>
+          <button class="forgot" type="button" id="phone-login">Use phone OTP</button>
+          <button class="forgot" type="button" id="google-login">Continue with Google</button>
           <p class="note">
             A thoughtful space for meaningful connections.
           </p>
+        </form>
+        <form class="auth-form" id="phone-form">
+          <p class="note" style="text-align:left">Use the mobile number linked to your account. We will send a one-time code.</p>
+          <label>Mobile number</label><input id="phone-number" type="tel" autocomplete="tel" placeholder="+91 00000 00000">
+          <label id="otp-label" hidden>Verification code</label><input id="phone-otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" hidden placeholder="6-digit code">
+          <button class="submit" id="phone-submit" type="submit">Send code</button>
+          <p class="note"><button class="forgot" type="button" id="phone-back">Back to Log In</button></p>
         </form>
         <form class="auth-form" id="register-form">
           <label>
@@ -599,22 +616,18 @@
             </button>
           </p>
         </form>
+        <form class="auth-form" id="new-password-form">
+          <p class="note" style="text-align:left">Choose a new password for your account.</p>
+          <label>New password</label><input id="recovery-password" type="password" minlength="8" autocomplete="new-password" required placeholder="At least 8 characters">
+          <label>Confirm new password</label><input id="recovery-password-confirm" type="password" minlength="8" autocomplete="new-password" required placeholder="Repeat your password">
+          <button class="submit" type="submit">Update password</button>
+        </form>
       </div>
     </div>
     <script>
       const $ = (selector) => document.querySelector(selector);
       const $$ = (selector) => document.querySelectorAll(selector);
-      const supabaseUrl = 'https://ssdjxqwvckysfecjwqcl.supabase.co';
-      const supabasePublishableKey = 'sb_publishable_CUJ_PgBeVlZ6rdpMewBukQ_mE78ahWs';
-      const supabaseClient = window.supabase?.createClient
-        ? window.supabase.createClient(supabaseUrl, supabasePublishableKey, {
-            auth: {
-              persistSession: true,
-              autoRefreshToken: true,
-              detectSessionInUrl: true
-            }
-          })
-        : null;
+      const supabaseClient = window.ManglikAuth?.client || null;
 
       const openMessage = (title, copy) => {
         $('#message-title').textContent = title;
@@ -623,19 +636,16 @@
       };
 
       $('#message-close').onclick = () => $('#message-modal').classList.remove('open');
-      $('#contact-form').onsubmit = (event) => {
-        event.preventDefault();
-        openMessage('Message received', 'Thank you for getting in touch. Our team will read your message soon.');
-      };
 
       const showAuth = (kind) => {
-        const isReset = kind === 'reset';
-        $('#auth-title').textContent = isReset ? 'Reset your password' : kind === 'login' ? 'Welcome back' : 'Create your profile';
-        $('#tabs').style.display = isReset ? 'none' : 'flex';
+        const isUtility = kind === 'reset' || kind === 'phone' || kind === 'new-password';
+        $('#auth-title').textContent = kind === 'reset' ? 'Reset your password' : kind === 'new-password' ? 'Choose a new password' : kind === 'phone' ? 'Log in with your phone' : kind === 'login' ? 'Welcome back' : 'Create your profile';
+        $('#tabs').style.display = isUtility ? 'none' : 'flex';
         $$('.tab').forEach((tab) => tab.classList.toggle('selected', tab.dataset.tab === kind));
         $$('.auth-form').forEach((form) => form.classList.toggle('active', form.id === `${kind}-form`));
         $('#auth-modal').classList.add('open');
       };
+      if (new URLSearchParams(location.search).has('next')) showAuth('login');
 
       const renderAccountActions = (session) => {
         const accountActions = $('#account-actions');
@@ -681,11 +691,16 @@
 
       $$('.tab').forEach((tab) => tab.onclick = () => showAuth(tab.dataset.tab));
       $('#forgot').onclick = () => showAuth('reset');
+      $('#phone-login').onclick = () => showAuth('phone');
+      $('#phone-back').onclick = () => showAuth('login');
+      $('#google-login').onclick = async () => { if (!requireSupabase()) return; const { error } = await window.ManglikSupabase.auth.googleSignIn(); if (error) openMessage('Google sign-in unavailable', error.message); };
       $('#back-login').onclick = () => showAuth('login');
       $('#auth-close').onclick = () => $('#auth-modal').classList.remove('open');
       $('#login-form').onsubmit = async (event) => {
         event.preventDefault();
         if (!requireSupabase()) return;
+
+        window.ManglikAuth.setRememberMe($('#remember-login').checked);
 
         const { error } = await supabaseClient.auth.signInWithPassword({
           email: $('#login-email').value.trim(),
@@ -697,6 +712,8 @@
           return;
         }
 
+        const next = new URLSearchParams(location.search).get('next');
+        if (next && !next.includes('://')) { location.assign(next); return; }
         $('#auth-modal').classList.remove('open');
         openMessage('Welcome back', 'Your account is ready to use.');
       };
@@ -721,10 +738,8 @@
         }
 
         $('#auth-modal').classList.remove('open');
-        openMessage(
-          data.session ? 'Welcome to Manglik Meets' : 'Check your email',
-          data.session ? 'Your account has been created.' : 'Open the confirmation email we sent to complete your account setup.'
-        );
+        const feedback = window.ManglikVerification.getSignUpFeedback(data);
+        openMessage(feedback.title, feedback.body);
       };
 
       $('#reset-form').onsubmit = async (event) => {
@@ -744,11 +759,29 @@
         openMessage('Check your inbox', 'If that address belongs to an account, a secure reset link is on its way.');
       };
 
+      $('#new-password-form').onsubmit = async (event) => {
+        event.preventDefault();
+        const password = $('#recovery-password').value;
+        if (password !== $('#recovery-password-confirm').value) { openMessage('Passwords do not match', 'Please enter the same new password twice.'); return; }
+        try { await window.ManglikSupabase.auth.updatePassword(password); $('#auth-modal').classList.remove('open'); openMessage('Password updated', 'You can now sign in with your new password.'); } catch (error) { openMessage('Unable to update password', error.message); }
+      };
+
+      let phoneCodeSent = false;
+      $('#phone-form').onsubmit = async (event) => {
+        event.preventDefault(); if (!requireSupabase()) return;
+        const phone = $('#phone-number').value.trim();
+        try {
+          if (!phoneCodeSent) { await window.ManglikSupabase.auth.phoneOtp(phone); phoneCodeSent = true; $('#phone-otp').hidden = false; $('#otp-label').hidden = false; $('#phone-submit').textContent = 'Verify code'; openMessage('Code sent', 'Enter the verification code sent to your phone.'); }
+          else { await window.ManglikSupabase.auth.verifyPhoneOtp(phone, $('#phone-otp').value.trim()); $('#auth-modal').classList.remove('open'); openMessage('Welcome back', 'Your phone number has been verified.'); }
+        } catch (error) { openMessage('Phone sign-in unavailable', error.message); }
+      };
+
       renderAccountActions(null);
       if (supabaseClient) {
         supabaseClient.auth.getSession().then(({ data }) => renderAccountActions(data.session));
-        supabaseClient.auth.onAuthStateChange((_event, session) => renderAccountActions(session));
+        supabaseClient.auth.onAuthStateChange((event, session) => { renderAccountActions(session); if (event === 'PASSWORD_RECOVERY') showAuth('new-password'); });
       }
+      window.addEventListener('manglik-verification-message', (event) => openMessage(event.detail.title, event.detail.body));
 
       const chat = $('#chat');
       const messages = $('#messages');

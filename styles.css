@@ -609,10 +609,18 @@ nav a,.login {
   min-height: 104px;
   resize: vertical;
 }
+.contact-form #contact-subject,.contact-form textarea,.contact-form-status { grid-column: 1/-1; }
+.contact-honeypot { position:absolute !important; left:-9999px !important; opacity:0 !important; pointer-events:none !important; }
+.contact-form-status { margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.contact-form-status.success { color: #3d7853; }
+.contact-form-status.error { color: #b34040; }
+.contact-form button[aria-busy="true"] { opacity:.72; cursor:wait; }
 
 .contact-form button {
   justify-self: start;
 }
+.remember-me { display:flex; align-items:center; gap:7px; margin:4px 0; font-size:12px; color:var(--muted); }
+.remember-me input { width:auto; }
 
 .modal {
   display: none;

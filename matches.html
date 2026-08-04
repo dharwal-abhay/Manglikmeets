@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Thoughtful Manglik Meets compatibility and match suggestions.">
+    <title>Manglik Meets - Matches</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="verification.css">
+    <link rel="stylesheet" href="matches.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app-config.js"></script>
+    <script src="auth-session.js"></script>
+    <script src="supabase-services.js"></script>
+    <script src="auth-guard.js"></script>
+    <script src="verification.js"></script>
+    <script src="notification-badges.js"></script>
+  </head>
+  <body>
+    <div data-verification-slot hidden></div>
+    <div class="dashboard-shell">
+      <aside class="sidebar" id="matches-sidebar" aria-label="Primary navigation">
+        <a class="brand" href="index.html" aria-label="Manglik Meets home"><span class="brand-mark" aria-hidden="true"><span class="m-large">M</span><span class="m-small">M</span></span><span>Manglik Meets</span></a>
+        <nav class="sidebar-nav">
+          <a class="nav-item" href="index.html"><span>⌂</span>Home</a>
+          <a class="nav-item" href="discover.html"><span>◎</span>Discover</a>
+          <a class="nav-item" href="feed.html"><span>◫</span>Community</a>
+          <a class="nav-item active" href="matches.html"><span>♡</span>Matches <b class="nav-count">12</b></a>
+          <a class="nav-item" href="messages.html"><span>◒</span>Messages <b class="nav-count rose">3</b></a>
+          <a class="nav-item" href="notifications.html"><span>♧</span>Notifications <b class="nav-count rose" data-notification-badge>5</b></a>
+          <button class="nav-item" type="button" data-future-action="saved"><span>⌑</span>Saved</button>
+          <a class="nav-item" href="dashboard.html"><span>◉</span>Profile</a>
+          <a class="nav-item" href="settings.html"><span>⚙</span>Settings</a>
+        </nav>
+        <button class="logout-button" type="button" data-future-action="logout"><span>↪</span>Log out</button>
+      </aside>
+      <div class="content-shell">
+        <header class="topbar"><button class="mobile-menu-button" id="matches-mobile-menu" type="button" aria-controls="matches-sidebar" aria-expanded="false">☰</button><div class="matches-top-title"><p class="eyebrow">Compatibility with intention</p><strong>Matches</strong></div><div class="topbar-actions"><a class="icon-button" href="notifications.html" aria-label="Notifications">♧<i class="alert-dot" data-notification-dot></i></a><a class="icon-button" href="messages.html" aria-label="Messages">◒<i class="alert-dot"></i></a><a class="top-avatar" href="dashboard.html" aria-label="Open profile">AS</a></div></header>
+        <main class="matches-main" data-component="matches-module">
+          <section class="matches-intro"><div><p class="eyebrow">A thoughtful shortlist</p><h1>Look for the <span>reasons you fit.</span></h1><p>Compatibility is more than a score — it is the small values, interests and intentions that feel easy together.</p></div><div class="intro-compatibility"><span>Today’s top connection</span><strong>96%</strong><small>Shared values · mutual intent</small></div></section>
+          <section class="match-insights"><article><span>Suggested</span><strong id="suggested-count">0</strong><small>Thoughtful new introductions</small></article><article><span>Pending likes</span><strong id="pending-count">0</strong><small>People interested in you</small></article><article><span>Mutual matches</span><strong id="mutual-count">0</strong><small>Ready for a meaningful chat</small></article></section>
+          <section class="matches-workspace">
+            <div class="match-tabs" role="tablist" aria-label="Match views"><button class="match-tab active" type="button" role="tab" data-match-view="suggested" aria-selected="true">Suggested Matches</button><button class="match-tab" type="button" role="tab" data-match-view="pending" aria-selected="false">Pending Likes <b id="pending-tab-count">0</b></button><button class="match-tab" type="button" role="tab" data-match-view="mutual" aria-selected="false">Mutual Matches</button><button class="match-tab" type="button" role="tab" data-match-view="favorites" aria-selected="false">Favorites</button><button class="match-tab" type="button" role="tab" data-match-view="viewed" aria-selected="false">Recently Viewed</button></div>
+            <div class="match-view-head"><div><p class="eyebrow" id="match-view-eyebrow">Picked for you</p><h2 id="match-view-title">Suggested matches</h2><p id="match-view-copy">Profiles selected for their alignment with what matters to you.</p></div><button class="match-sort" id="match-sort" type="button">Best compatibility ▾</button></div>
+            <div class="match-grid" id="match-grid" data-supabase-table="match_suggestions"></div>
+            <div class="matches-empty" id="matches-empty" hidden><span>✦</span><h2>No matches here yet</h2><p>Keep your profile current and new meaningful introductions will appear here.</p><a class="primary-button" href="discover.html">Discover members</a></div>
+          </section>
+        </main>
+      </div>
+    </div>
+    <div class="match-drawer-backdrop" id="match-drawer-backdrop"></div>
+    <aside class="match-drawer" id="match-drawer" aria-hidden="true" aria-label="Match profile"><div class="match-drawer-head"><button id="match-drawer-close" type="button" aria-label="Close profile">×</button></div><div id="match-drawer-content"></div></aside>
+    <div class="matches-toast" id="matches-toast" role="status" aria-live="polite"></div>
+    <script src="matches.js"></script>
+    <script src="supabase-integration.js"></script>
+  </body>
+</html>

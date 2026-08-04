@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Your Manglik Meets notifications.">
+    <title>Manglik Meets - Notifications</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="verification.css">
+    <link rel="stylesheet" href="notifications.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app-config.js"></script>
+    <script src="auth-session.js"></script>
+    <script src="supabase-services.js"></script>
+    <script src="auth-guard.js"></script>
+    <script src="verification.js"></script>
+    <script src="notification-badges.js"></script>
+  </head>
+  <body>
+    <div data-verification-slot hidden></div>
+    <div class="dashboard-shell">
+      <aside class="sidebar" id="notifications-sidebar" aria-label="Primary navigation">
+        <a class="brand" href="index.html" aria-label="Manglik Meets home"><span class="brand-mark" aria-hidden="true"><span class="m-large">M</span><span class="m-small">M</span></span><span>Manglik Meets</span></a>
+        <nav class="sidebar-nav">
+          <a class="nav-item" href="index.html"><span>⌂</span>Home</a>
+          <a class="nav-item" href="discover.html"><span>◎</span>Discover</a>
+          <a class="nav-item" href="feed.html"><span>◫</span>Community</a>
+          <a class="nav-item" href="matches.html"><span>♡</span>Matches <b class="nav-count">12</b></a>
+          <a class="nav-item" href="messages.html"><span>◒</span>Messages <b class="nav-count rose">3</b></a>
+          <a class="nav-item active" href="notifications.html"><span>♧</span>Notifications <b class="nav-count rose" data-notification-badge>5</b></a>
+          <button class="nav-item" type="button" data-future-action="saved"><span>⌑</span>Saved</button>
+          <a class="nav-item" href="dashboard.html"><span>◉</span>Profile</a>
+          <a class="nav-item" href="settings.html"><span>⚙</span>Settings</a>
+        </nav>
+        <button class="logout-button" type="button" data-future-action="logout"><span>↪</span>Log out</button>
+      </aside>
+      <div class="content-shell">
+        <header class="topbar"><button class="mobile-menu-button" id="notifications-mobile-menu" type="button" aria-controls="notifications-sidebar" aria-expanded="false">☰</button><div class="notifications-top-title"><p class="eyebrow">Your activity, in one place</p><strong>Notifications</strong></div><div class="topbar-actions"><a class="icon-button" href="messages.html" aria-label="Messages">◒<i class="alert-dot"></i></a><a class="top-avatar" href="dashboard.html" aria-label="Open profile">AS</a></div></header>
+        <main class="notifications-main" data-component="notification-center">
+          <section class="notifications-intro"><div><p class="eyebrow">Stay in the loop</p><h1>Small moments, <span>meaningful connections.</span></h1><p>Keep up with new conversations, profile activity and thoughtful community updates.</p></div><span aria-hidden="true">✦</span></section>
+          <section class="notifications-panel">
+            <div class="notification-panel-head"><div><h2>All notifications</h2><p id="notification-summary">You have unread updates waiting.</p></div><div class="notification-panel-actions"><button class="secondary-button" id="mark-all-read" type="button">Mark all read</button><button class="outline-button" id="clear-read" type="button">Clear read</button></div></div>
+            <div class="notification-controls"><label class="notification-search" for="notification-search-input">⌕<input id="notification-search-input" type="search" placeholder="Search notifications"></label><div class="notification-filters" role="tablist" aria-label="Notification categories"><button class="notification-filter active" type="button" data-notification-filter="all" role="tab" aria-selected="true">All</button><button class="notification-filter" type="button" data-notification-filter="message" role="tab" aria-selected="false">Messages</button><button class="notification-filter" type="button" data-notification-filter="match" role="tab" aria-selected="false">Matches</button><button class="notification-filter" type="button" data-notification-filter="like" role="tab" aria-selected="false">Likes</button><button class="notification-filter" type="button" data-notification-filter="view" role="tab" aria-selected="false">Views</button><button class="notification-filter" type="button" data-notification-filter="verification" role="tab" aria-selected="false">Verification</button><button class="notification-filter" type="button" data-notification-filter="community" role="tab" aria-selected="false">Community</button><button class="notification-filter" type="button" data-notification-filter="system" role="tab" aria-selected="false">System</button></div></div>
+            <div class="notification-list" id="notification-list" data-supabase-table="notifications" aria-live="polite"></div>
+            <div class="notifications-empty" id="notifications-empty" hidden><span>✦</span><h2>You are all caught up</h2><p>New activity and thoughtful community updates will appear here.</p></div>
+          </section>
+        </main>
+      </div>
+    </div>
+    <div class="notifications-toast" id="notifications-toast" role="status" aria-live="polite"></div>
+    <script src="notifications.js"></script>
+    <script src="supabase-integration.js"></script>
+  </body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="The Manglik Meets community feed for stories, advice and thoughtful conversations.">
+    <title>Manglik Meets - Community Feed</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="feed.css">
+    <link rel="stylesheet" href="verification.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app-config.js"></script>
+    <script src="auth-session.js"></script>
+    <script src="supabase-services.js"></script>
+    <script src="auth-guard.js"></script>
+    <script src="verification.js"></script>
+    <script src="notification-badges.js"></script>
+  </head>
+  <body>
+    <div data-verification-slot hidden></div>
+    <div class="dashboard-shell">
+      <aside class="sidebar" id="feed-sidebar" aria-label="Primary navigation">
+        <a class="brand" href="index.html" aria-label="Manglik Meets home"><span class="brand-mark" aria-hidden="true"><span class="m-large">M</span><span class="m-small">M</span></span><span>Manglik Meets</span></a>
+        <nav class="sidebar-nav">
+          <a class="nav-item" href="index.html"><span>⌂</span>Home</a>
+          <a class="nav-item" href="discover.html"><span>◎</span>Discover</a>
+          <a class="nav-item active" href="feed.html"><span>◫</span>Community</a>
+          <a class="nav-item" href="matches.html"><span>♡</span>Matches <b class="nav-count">12</b></a>
+          <a class="nav-item" href="messages.html"><span>◒</span>Messages <b class="nav-count rose">3</b></a>
+          <a class="nav-item" href="notifications.html"><span>♧</span>Notifications <b class="nav-count rose" data-notification-badge>5</b></a>
+          <button class="nav-item" type="button" data-future-action="saved"><span>⌑</span>Saved</button>
+          <a class="nav-item" href="dashboard.html"><span>◉</span>Profile</a>
+          <a class="nav-item" href="settings.html"><span>⚙</span>Settings</a>
+        </nav>
+        <button class="logout-button" type="button" data-future-action="logout"><span>↪</span>Log out</button>
+      </aside>
+
+      <div class="content-shell">
+        <header class="topbar">
+          <button class="mobile-menu-button" id="feed-mobile-menu" type="button" aria-controls="feed-sidebar" aria-expanded="false">☰</button>
+          <div class="feed-top-title"><p class="eyebrow">Stories, wisdom and connection</p><strong>Community Feed</strong></div>
+          <div class="topbar-actions"><a class="icon-button" href="notifications.html" aria-label="Notifications">♧<i class="alert-dot" data-notification-dot></i></a><a class="icon-button" href="messages.html" aria-label="Messages">◒<i class="alert-dot"></i></a><a class="top-avatar" href="dashboard.html" aria-label="Open profile">AS</a></div>
+        </header>
+
+        <main class="feed-main" data-component="community-feed">
+          <section class="feed-intro">
+            <div><p class="eyebrow">The Manglik Meets circle</p><h1>More than matches — <span>shared moments.</span></h1><p>Celebrate new beginnings, exchange practical wisdom, and meet the community behind the profiles.</p></div>
+            <div class="feed-intro-orbit" aria-hidden="true">✦</div>
+          </section>
+
+          <div class="feed-layout">
+            <section class="feed-column" aria-label="Community posts">
+              <div class="composer-card" data-component="post-composer">
+                <div class="composer-avatar">AS</div>
+                <button class="composer-trigger" id="open-composer" type="button" data-supabase-action="create-post">Share a thoughtful update with the community...</button>
+                <div class="composer-actions"><button type="button" data-composer-type="photo">▣ Photo</button><button type="button" data-composer-type="discussion">◌ Discussion</button><button type="button" data-composer-type="poll">◷ Poll</button></div>
+              </div>
+
+              <div class="feed-toolbar" data-component="feed-filters">
+                <div class="feed-tabs" role="tablist" aria-label="Feed filters"><button class="feed-tab active" type="button" role="tab" data-feed-filter="all" aria-selected="true">For you</button><button class="feed-tab" type="button" role="tab" data-feed-filter="stories" aria-selected="false">Success stories</button><button class="feed-tab" type="button" role="tab" data-feed-filter="tips" aria-selected="false">Tips & guides</button><button class="feed-tab" type="button" role="tab" data-feed-filter="discussions" aria-selected="false">Discussions</button></div>
+                <button class="feed-sort" id="feed-sort" type="button" data-sort="latest">Latest ▾</button>
+              </div>
+
+              <div class="feed-skeletons" id="feed-skeletons" aria-label="Loading posts"><div class="post-skeleton"></div><div class="post-skeleton"></div></div>
+              <div class="feed-list" id="feed-list" data-supabase-table="community_posts" aria-live="polite"></div>
+              <div class="feed-empty" id="feed-empty" hidden><span>✦</span><h2>No posts here yet</h2><p>Be the first to start a kind, useful conversation in this part of the community.</p><button class="primary-button" type="button" data-supabase-action="create-post">Create a post</button></div>
+              <div class="feed-load-state" id="feed-load-state" data-component="infinite-scroll"><span class="loader-orbit" aria-hidden="true"></span><strong>Loading more stories</strong><p>More community moments will appear here as you scroll.</p><button class="text-action" id="load-more-posts" type="button">Load more</button></div>
+            </section>
+
+            <aside class="feed-sidebar-right" aria-label="Community insights">
+              <section class="feed-side-card trending-card" data-component="trending-topics"><div class="side-heading"><div><p class="eyebrow">Trending now</p><h2>Conversations to join</h2></div><span class="trending-flame">✦</span></div><div id="trending-topics"></div></section>
+              <section class="feed-side-card events-card" data-component="community-events"><div class="side-heading"><div><p class="eyebrow">Coming up</p><h2>Community events</h2></div></div><div class="event-date"><strong>18</strong><span>Aug</span></div><div class="event-copy"><strong>Ask a matchmaker</strong><p>A relaxed, expert-led virtual conversation.</p><button class="text-action" type="button" data-future-action="event-rsvp">Set reminder</button></div></section>
+              <section class="feed-side-card community-note"><p class="eyebrow">A respectful space</p><h2>Share with care.</h2><p>Personal details stay yours. Keep every conversation kind, sincere, and consent-led.</p><a href="index.html#privacy">Community guidelines →</a></section>
+            </aside>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <div class="composer-modal-backdrop" id="composer-modal-backdrop"></div>
+    <section class="composer-modal" id="composer-modal" aria-hidden="true" aria-labelledby="composer-title" role="dialog" aria-modal="true"><div class="composer-modal-head"><div><p class="eyebrow">Community post</p><h2 id="composer-title">Share something meaningful</h2></div><button class="drawer-close" id="composer-close" type="button" aria-label="Close composer">×</button></div><form id="composer-form" data-supabase-action="create-post"><label for="post-body">Your update</label><textarea id="post-body" maxlength="500" placeholder="A helpful tip, a story, a reflection..." data-post-field="body"></textarea><div class="composer-modal-actions"><span id="composer-count">0 / 500</span><button class="primary-button" type="submit">Publish post</button></div></form></section>
+    <div class="feed-toast" id="feed-toast" role="status" aria-live="polite"></div>
+    <script src="feed.js"></script>
+    <script src="supabase-integration.js"></script>
+  </body>
+</html>

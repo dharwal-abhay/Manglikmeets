@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Discover compatible Manglik Meets community members.">
+    <title>Manglik Meets - Discover</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="discover.css">
+    <link rel="stylesheet" href="verification.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app-config.js"></script>
+    <script src="auth-session.js"></script>
+    <script src="supabase-services.js"></script>
+    <script src="auth-guard.js"></script>
+    <script src="verification.js"></script>
+    <script src="notification-badges.js"></script>
+  </head>
+  <body>
+    <div data-verification-slot hidden></div>
+    <div class="dashboard-shell">
+      <aside class="sidebar" id="discover-sidebar" aria-label="Primary navigation">
+        <a class="brand" href="index.html" aria-label="Manglik Meets home"><span class="brand-mark" aria-hidden="true"><span class="m-large">M</span><span class="m-small">M</span></span><span>Manglik Meets</span></a>
+        <nav class="sidebar-nav">
+          <a class="nav-item" href="index.html"><span>⌂</span>Home</a>
+          <a class="nav-item active" href="discover.html"><span>◎</span>Discover</a>
+          <a class="nav-item" href="feed.html"><span>◫</span>Community</a>
+          <a class="nav-item" href="matches.html"><span>♡</span>Matches <b class="nav-count">12</b></a>
+          <a class="nav-item" href="messages.html"><span>◒</span>Messages <b class="nav-count rose">3</b></a>
+          <a class="nav-item" href="notifications.html"><span>♧</span>Notifications <b class="nav-count rose" data-notification-badge>5</b></a>
+          <button class="nav-item" type="button" data-future-action="saved"><span>⌑</span>Saved</button>
+          <a class="nav-item" href="dashboard.html"><span>◉</span>Profile</a>
+          <a class="nav-item" href="settings.html"><span>⚙</span>Settings</a>
+        </nav>
+        <button class="logout-button" type="button" data-future-action="logout"><span>↪</span>Log out</button>
+      </aside>
+
+      <div class="content-shell">
+        <header class="topbar">
+          <button class="mobile-menu-button" id="discover-mobile-menu" type="button" aria-controls="discover-sidebar" aria-expanded="false">☰</button>
+          <div class="discover-top-title"><p class="eyebrow">Find your next connection</p><strong>Discover</strong></div>
+          <div class="topbar-actions"><a class="icon-button" href="notifications.html" aria-label="Notifications">♧<i class="alert-dot" data-notification-dot></i></a><a class="icon-button" href="messages.html" aria-label="Messages">◒<i class="alert-dot"></i></a><a class="top-avatar" href="dashboard.html" aria-label="Open profile">AS</a></div>
+        </header>
+
+        <main class="discover-main" data-component="discover-page">
+          <section class="discover-hero">
+            <div class="discover-hero-copy">
+              <p class="eyebrow">Thoughtful matching</p>
+              <h1>Find someone who feels <span>familiar in the right ways.</span></h1>
+              <p>Explore profiles with intention, shared values, and just a gentle touch of cosmic compatibility.</p>
+            </div>
+            <div class="discover-hero-note"><strong>Designed for a meaningful match</strong><p>Use the filters you care about, then make room for a conversation that feels genuine.</p></div>
+          </section>
+
+          <section class="search-panel" data-component="member-search">
+            <form id="discover-search-form">
+              <div class="search-form-row">
+                <label class="search-field" for="member-search-input"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><input id="member-search-input" type="search" autocomplete="off" placeholder="Name, username, city, profession, interests..." data-supabase-query="member-search"></label>
+                <button class="filter-toggle" id="filter-toggle" type="button" aria-controls="advanced-filters" aria-expanded="false">Filters <b class="filter-count" id="filter-count" hidden>0</b></button>
+                <button class="search-submit" type="submit">Search</button>
+              </div>
+            </form>
+
+            <div class="search-suggestions" id="search-suggestions" aria-live="polite">
+              <span class="suggestion-label" id="suggestion-label">Trending searches</span>
+              <div class="suggestion-list" id="suggestion-list"></div>
+            </div>
+
+            <div class="search-discovery-row">
+              <div><strong>Recent:</strong><button class="search-chip" type="button" data-search-chip="New Delhi">New Delhi</button><button class="search-chip" type="button" data-search-chip="Architect">Architect</button></div>
+              <div><strong>Trending:</strong><button class="search-chip" type="button" data-search-chip="Verified">Verified members</button><button class="search-chip" type="button" data-search-chip="Hindi">Hindi speakers</button></div>
+            </div>
+
+            <form class="advanced-filters" id="advanced-filters" data-supabase-table="profiles">
+              <div class="filter-grid">
+                <div class="filter-group"><label>Age range</label><div class="range-pair"><input type="number" min="18" max="99" value="25" data-filter="ageMin" aria-label="Minimum age"><input type="number" min="18" max="99" value="35" data-filter="ageMax" aria-label="Maximum age"></div></div>
+                <div class="filter-group"><label for="height-filter">Height</label><select id="height-filter" data-filter="height"><option value="">Any height</option><option value="5">5'0" - 5'7"</option><option value="5.6">5'8" - 5'11"</option><option value="6">6'0" and above</option></select></div>
+                <div class="filter-group"><label for="gender-filter">Gender</label><select id="gender-filter" data-filter="gender"><option value="">Any gender</option><option>Woman</option><option>Man</option><option>Non-binary</option></select></div>
+                <div class="filter-group"><label for="manglik-filter">Manglik status</label><select id="manglik-filter" data-filter="manglik"><option value="">Open to all</option><option>Manglik</option><option>Anshik Manglik</option><option>Non-Manglik</option></select></div>
+                <div class="filter-group"><label for="religion-filter">Religion</label><select id="religion-filter" data-filter="religion"><option value="">Any religion</option><option>Hindu</option><option>Muslim</option><option>Sikh</option><option>Christian</option><option>Jain</option></select></div>
+                <div class="filter-group"><label for="education-filter">Education</label><input id="education-filter" data-filter="education" placeholder="e.g. MBA"></div>
+                <div class="filter-group"><label for="profession-filter">Profession</label><input id="profession-filter" data-filter="profession" placeholder="e.g. Architect"></div>
+                <div class="filter-group"><label for="income-filter">Income</label><select id="income-filter" data-filter="income"><option value="">Any income</option><option>15L+</option><option>18L+</option><option>20L+</option><option>25L+</option><option>30L+</option><option>35L+</option></select></div>
+                <div class="filter-group"><label for="distance-filter">Distance</label><select id="distance-filter" data-filter="distance"><option value="">Any distance</option><option>Within 25 km</option><option>Within 50 km</option><option>Anywhere in India</option></select></div>
+              </div>
+              <div class="filter-checks"><label class="filter-check"><input type="checkbox" data-filter="verifiedOnly">Verified only</label><label class="filter-check"><input type="checkbox" data-filter="onlineOnly">Online only</label><label class="filter-check"><input type="checkbox" data-filter="recentlyActive">Recently active</label></div>
+              <div class="filter-actions"><button class="secondary-button" id="clear-filters" type="button">Clear filters</button><button class="primary-button" type="submit" data-supabase-action="search-members">Show matches</button></div>
+            </form>
+          </section>
+
+          <div class="discover-sections">
+            <section class="discover-section" data-discover-section="recommended"><div class="section-heading-row"><div><p class="eyebrow">Picked for you</p><h2 id="recommended-heading">Recommended matches</h2><p id="recommended-subtitle">Thoughtful introductions based on your shared values and profile details.</p></div><button class="text-action" type="button" data-discover-category="recommended">See all</button></div><div class="member-grid" data-member-grid="recommended"></div></section>
+            <section class="discover-section" data-discover-section="compatible"><div class="section-heading-row"><div><p class="eyebrow">Shared values</p><h2>Compatible members</h2><p>High-potential connections with aligned lifestyles and intent.</p></div><button class="text-action" type="button" data-discover-category="compatible">See all</button></div><div class="member-grid" data-member-grid="compatible"></div></section>
+            <section class="discover-section discover-lists"><div><div class="section-heading-row"><div><p class="eyebrow">Around you</p><h2>Nearby members</h2></div></div><div class="member-list" data-member-list="nearby"></div></div><div><div class="section-heading-row"><div><p class="eyebrow">Just joined</p><h2>New members</h2></div></div><div class="member-list" data-member-list="new"></div></div></section>
+            <section class="discover-section"><div class="section-heading-row"><div><p class="eyebrow">More to explore</p><h2>Discover your way</h2><p>Meet members with an energy that feels right for you.</p></div></div><div class="discover-category-grid"><button class="discover-category" type="button" data-discover-category="verified"><span>✓</span><strong>Verified Members</strong><small>Profiles reviewed with care</small></button><button class="discover-category" type="button" data-discover-category="trending"><span>↗</span><strong>Trending Profiles</strong><small>Thoughtful people getting noticed</small></button><button class="discover-category" type="button" data-discover-category="active"><span>◉</span><strong>Most Active</strong><small>Ready for real conversations</small></button><button class="discover-category" type="button" data-discover-category="recent"><span>◷</span><strong>Recently Joined</strong><small>New energy in the community</small></button></div></section>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <div class="member-drawer-backdrop" id="member-drawer-backdrop"></div>
+    <aside class="member-drawer" id="member-drawer" aria-hidden="true" aria-label="Member profile"><div class="drawer-header"><button class="drawer-close" id="member-drawer-close" type="button" aria-label="Close profile">×</button></div><div class="drawer-content" id="member-drawer-content"></div></aside>
+    <div class="discover-toast" id="discover-toast" role="status" aria-live="polite"></div>
+    <script src="discover.js"></script>
+    <script src="supabase-integration.js"></script>
+  </body>
+</html>
