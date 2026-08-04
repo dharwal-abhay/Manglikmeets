@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Profiles you have saved on Manglik Meets.">
+    <title>Manglik Meets - Saved Profiles</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="discover.css">
+    <link rel="stylesheet" href="saved.css">
+    <link rel="stylesheet" href="verification.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app-config.js"></script>
+    <script src="auth-session.js"></script>
+    <script src="supabase-services.js"></script>
+    <script src="auth-guard.js"></script>
+    <script src="verification.js"></script>
+    <script src="notification-badges.js"></script>
+    <script src="navigation.js"></script>
+  </head>
+  <body>
+    <div data-verification-slot hidden></div>
+    <div class="dashboard-shell">
+      <aside class="sidebar" id="saved-sidebar" aria-label="Primary navigation">
+        <a class="brand" href="dashboard.html" aria-label="Manglik Meets dashboard"><span class="brand-mark" aria-hidden="true"><span class="m-large">M</span><span class="m-small">M</span></span><span>Manglik Meets</span></a>
+        <nav class="sidebar-nav">
+          <a class="nav-item" href="dashboard.html"><span>⌂</span>Dashboard</a>
+          <a class="nav-item" href="discover.html"><span>◎</span>Discover</a>
+          <a class="nav-item" href="matches.html"><span>♡</span>Matches</a>
+          <a class="nav-item" href="messages.html"><span>◒</span>Messages</a>
+          <a class="nav-item" href="notifications.html"><span>♧</span>Notifications <b class="nav-count rose" data-notification-badge>0</b></a>
+          <a class="nav-item active" href="saved.html"><span>⌑</span>Saved</a>
+          <a class="nav-item" href="dashboard.html#profile"><span>◉</span>Profile</a>
+          <a class="nav-item" href="settings.html"><span>⚙</span>Settings</a>
+        </nav>
+        <button class="logout-button" type="button" data-future-action="logout"><span>↪</span>Log out</button>
+      </aside>
+      <div class="content-shell">
+        <header class="topbar">
+          <button class="mobile-menu-button" id="saved-mobile-menu" type="button" aria-controls="saved-sidebar" aria-expanded="false">☰</button>
+          <div class="discover-top-title"><p class="eyebrow">Your shortlist</p><strong>Saved profiles</strong></div>
+          <div class="topbar-actions"><a class="icon-button" href="notifications.html" aria-label="Notifications">♧<i class="alert-dot" data-notification-dot></i></a><a class="icon-button" href="messages.html" aria-label="Messages">◒</a><a class="top-avatar" href="dashboard.html#profile" aria-label="Open profile">MM</a></div>
+        </header>
+        <main class="discover-main" data-component="saved-profiles-page">
+          <section class="discover-hero">
+            <div class="discover-hero-copy"><p class="eyebrow">Keep the possibilities close</p><h1>Profiles you want to <span>come back to.</span></h1><p>Revisit meaningful introductions when the timing feels right. Your saved list is private to you.</p></div>
+            <div class="discover-hero-note"><strong>Thoughtful, never rushed</strong><p>Save a profile, reflect on what feels aligned, and begin a conversation when you are ready.</p></div>
+          </section>
+          <section class="discover-section">
+            <div class="section-heading-row"><div><p class="eyebrow">Saved by you</p><h2>Your shortlist</h2><p id="saved-summary" aria-live="polite">Loading your saved profiles…</p></div></div>
+            <div class="member-grid" id="saved-profiles-list" aria-live="polite"></div>
+            <div class="empty-state" id="saved-empty-state" hidden><strong>No saved profiles yet</strong><p>When someone catches your interest, save their profile here to revisit later.</p><a class="primary-button" href="discover.html">Discover members</a></div>
+          </section>
+        </main>
+      </div>
+    </div>
+    <div class="discover-toast" id="saved-toast" role="status" aria-live="polite"></div>
+    <script src="saved.js"></script>
+  </body>
+</html>

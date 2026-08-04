@@ -1,65 +1,270 @@
-/* Settings account-center prototype. All mutations are exposed as Supabase-ready payloads. */
+/* Live Settings controller. Each action has one Supabase-backed owner. */
 (function () {
   'use strict';
 
   const $ = (selector, scope = document) => scope.querySelector(selector);
-  const $$ = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
-  const state = { active: 'account', pendingSensitiveAction: null };
+  const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
+  const api = window.ManglikSupabase;
+  const state = { user: null, profile: null, settings: null, pendingAction: null, phoneChangePending: false };
   let toastTimer;
 
-  function showToast(message) { const toast = $('#settings-toast'); toast.textContent = message; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 3200); }
-  function valuesFor(form) { const values = {}; $$('[data-setting-field]', form).forEach((field) => { if (field.type === 'checkbox') values[field.dataset.settingField] = field.checked; else if (field.type === 'radio') { if (field.checked) values[field.dataset.settingField] = field.value; } else values[field.dataset.settingField] = field.value.trim(); }); return values; }
-  function setSection(name) { state.active = name; $$('.settings-section').forEach((section) => section.classList.toggle('active', section.dataset.settingsSection === name)); $$('.settings-nav-item').forEach((button) => button.classList.toggle('active', button.dataset.settingsTarget === name)); }
-  function applyTheme(theme) { const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia?.('(prefers-color-scheme: dark)').matches); document.body.classList.toggle('dark-mode', isDark); localStorage.setItem('manglik-meets-theme', theme); }
-  function updateVerificationState(session) { const user = session?.user || session || null; const email = user?.email || 'aanya@example.com'; $('#current-email').textContent = email; const isProductionVerification = window.ManglikVerification?.requiresVerification(); const isVerified = window.ManglikVerification?.isEmailVerified(user); $('#email-status').textContent = !isProductionVerification ? 'Development trusted' : isVerified ? 'Email verified' : 'Verification needed'; $('#email-status').classList.toggle('muted', Boolean(isProductionVerification && !isVerified)); const notice = $('#settings-verification-notice'); window.ManglikVerification?.render(session, { slot: notice }); }
-  function openConfirm(action) { const labels = { deactivate: { title: 'Deactivate your account?', copy: 'Your profile will be hidden until you decide to return.' }, delete: { title: 'Delete your account?', copy: 'This is permanent after confirmation. We will request a final server-side confirmation before any data is deleted.' } }; state.pendingSensitiveAction = action; $('#settings-confirm-title').textContent = labels[action].title; $('#settings-confirm-copy').textContent = labels[action].copy; $('#settings-confirm').hidden = false; }
-  function closeConfirm() { state.pendingSensitiveAction = null; $('#settings-confirm').hidden = true; }
-  function initialiseAccount() { const auth = window.ManglikAuth; if (auth) { auth.onChange(updateVerificationState); updateVerificationState(auth.getSession()); } else updateVerificationState(null); }
-  function initialiseEvents() {
-    const mobileActions = $('#update-phone-form .setting-form-row');
-    if (mobileActions && !mobileActions.querySelector('[data-supabase-action="verify-mobile"]')) {
-      const verifyMobile = document.createElement('button');
-      verifyMobile.className = 'outline-button';
-      verifyMobile.type = 'button';
-      verifyMobile.dataset.supabaseAction = 'verify-mobile';
-      verifyMobile.textContent = 'Verify mobile';
-      mobileActions.append(verifyMobile);
+  const messageFor = (error, fallback) => error?.message || fallback;
+  const notify = (message) => {
+    const toast = $('#settings-toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 3600);
+  };
+  const setBusy = async (button, work) => {
+    const label = button?.textContent;
+    if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true'); }
+    try { return await work(); }
+    finally {
+      if (button) {
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+        button.textContent = button.dataset.nextLabel || label;
+        delete button.dataset.nextLabel;
+      }
     }
-    $$('.settings-nav-item').forEach((button) => button.addEventListener('click', () => { setSection(button.dataset.settingsTarget); document.querySelector('.settings-content').scrollIntoView({ behavior: 'smooth', block: 'start' }); }));
-    $$('form[data-supabase-action]').forEach((form) => form.addEventListener('submit', (event) => { event.preventDefault(); if (form.id === 'change-password-form' && $('#new-password').value !== $('#confirm-password').value) { showToast('New passwords do not match.'); return; } const action = form.dataset.supabaseAction; const payload = valuesFor(form); localStorage.setItem(`manglik-meets-settings-${action}`, JSON.stringify(payload)); if (form.id === 'appearance-settings-form') applyTheme(payload.theme || 'light'); if (form.id === 'accessibility-settings-form') { document.documentElement.style.fontSize = `${payload.font_size || 100}%`; document.body.classList.toggle('reduce-motion', Boolean(payload.reduce_motion)); } showToast(`${action.replaceAll('-', ' ')} is ready to sync to your account.`); }));
-    $('#font-size-range').addEventListener('input', (event) => { $('#font-size-output').textContent = `${event.target.value}%`; document.documentElement.style.fontSize = `${event.target.value}%`; });
-    $('#logout-other-devices').addEventListener('click', () => showToast('Other sessions will be signed out when Supabase session management is connected.'));
-    $$('.session-list [data-session-action]').forEach((button) => button.addEventListener('click', () => { button.closest('div').remove(); showToast('Session removed from this local preview.'); }));
-    $$('[data-placeholder-action]').forEach((button) => button.addEventListener('click', () => showToast('This feature is prepared for the connected production workflow.')));
-    $$('[data-supabase-action]').forEach((button) => { if (button.tagName === 'BUTTON' && button.type === 'button' && !button.closest('form')) button.addEventListener('click', () => showToast(`${button.dataset.supabaseAction.replaceAll('-', ' ')} is ready for Supabase.`)); });
-    const verifyMobile = $('[data-supabase-action="verify-mobile"]');
-    if (verifyMobile) verifyMobile.addEventListener('click', async () => {
-      const phone = $('#mobile-number')?.value.trim();
-      if (!phone) { showToast('Enter your mobile number first.'); return; }
-      try {
-        const code = window.prompt('Enter the verification code sent to your phone. Leave this blank to send a new code.');
-        if (code) await window.ManglikSupabase.auth.verifyPhoneChange(phone, code);
-        else await window.ManglikSupabase.auth.updatePhone(phone);
-        showToast(code ? 'Mobile number verified.' : 'Verification code sent to your phone.');
-      } catch (error) { showToast(error.message); }
+  };
+  const formValues = (form) => {
+    const values = {};
+    $$('[data-setting-field]', form).forEach((field) => {
+      if (field.type === 'checkbox') values[field.dataset.settingField] = field.checked;
+      else if (field.type !== 'radio' || field.checked) values[field.dataset.settingField] = field.value.trim();
     });
-    $$('[data-sensitive-action]').forEach((button) => button.addEventListener('click', () => openConfirm(button.dataset.sensitiveAction)));
-    $('#settings-confirm-cancel').addEventListener('click', closeConfirm);
-    $('#settings-confirm-continue').addEventListener('click', () => { const action = state.pendingSensitiveAction; closeConfirm(); showToast(`${action === 'delete' ? 'Account deletion request' : 'Account deactivation'} is prepared for secure server-side confirmation.`); });
-    $('#settings-mobile-menu').addEventListener('click', () => { const sidebar = $('#settings-sidebar'); const isOpen = sidebar.classList.toggle('open'); $('#settings-mobile-menu').setAttribute('aria-expanded', String(isOpen)); });
+    return values;
+  };
+  const setSection = (name) => {
+    $$('.settings-section').forEach((section) => section.classList.toggle('active', section.dataset.settingsSection === name));
+    $$('.settings-nav-item').forEach((button) => button.classList.toggle('active', button.dataset.settingsTarget === name));
+    history.replaceState(null, '', `#${name}`);
+  };
+  const applyTheme = (theme) => {
+    const dark = theme === 'dark' || (theme === 'system' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+    document.body.classList.toggle('dark-mode', dark);
+    localStorage.setItem('manglik-meets-theme', theme);
+  };
+  const applyAccessibility = (values) => {
+    const size = Math.max(90, Math.min(120, Number(values.font_size || 100)));
+    document.documentElement.style.fontSize = `${size}%`;
+    document.body.classList.toggle('reduce-motion', Boolean(values.reduce_motion));
+    $('#font-size-output').textContent = `${size}%`;
+  };
+  const updateVerification = (user) => {
+    $('#current-email').textContent = user?.email || 'Email not available';
+    const required = window.ManglikVerification?.requiresVerification();
+    const verified = window.ManglikVerification?.isEmailVerified(user);
+    $('#email-status').textContent = required ? (verified ? 'Email verified' : 'Verification needed') : 'Development trusted';
+    $('#email-status').classList.toggle('muted', Boolean(required && !verified));
+    window.ManglikVerification?.render({ user }, { slot: $('#settings-verification-notice') });
+  };
+  const loadProfileIntoForm = (profile) => {
+    if (!profile) return;
+    $('#mobile-number').value = profile.mobile_number || '';
+    $('#recovery-email').value = profile.recovery_email || '';
+    $('#settings-bio').value = profile.bio || '';
+    $('#settings-username').value = profile.username || '';
+    const privacy = profile.privacy || {};
+    const values = {
+      private_profile: privacy.privateProfile ?? profile.private_profile,
+      hide_age: privacy.hideAge ?? profile.hide_age,
+      hide_city: privacy.hideCity ?? profile.hide_city,
+      hide_online_status: privacy.hideOnlineStatus ?? profile.hide_online_status,
+      hide_last_seen: privacy.hideLastSeen ?? profile.hide_last_seen
+    };
+    Object.entries(values).forEach(([key, value]) => {
+      const field = $(`[data-setting-field="${key}"]`);
+      if (field) field.checked = Boolean(value);
+    });
+  };
+  const loadSettingsIntoForm = (settings) => {
+    if (!settings) return;
+    Object.entries(settings).forEach(([key, value]) => {
+      const field = $(`[data-setting-field="${key}"]`);
+      if (!field) return;
+      if (field.type === 'checkbox') field.checked = Boolean(value);
+      else if (field.type === 'radio') field.checked = field.value === value;
+      else field.value = value;
+    });
+    applyTheme(settings.theme || 'light');
+    applyAccessibility(settings);
+  };
+  const showConfirm = (action) => {
+    const content = {
+      deactivate: ['Deactivate your account?', 'Your profile will be made private and you will be signed out. You can return by signing in again.'],
+      delete: ['Delete account?', 'Account deletion requires a secure server-side request. We will direct you to Support rather than remove only part of your account.']
+    }[action];
+    if (!content) return;
+    state.pendingAction = action;
+    $('#settings-confirm-title').textContent = content[0];
+    $('#settings-confirm-copy').textContent = content[1];
+    $('#settings-confirm').hidden = false;
+  };
+  const closeConfirm = () => { state.pendingAction = null; $('#settings-confirm').hidden = true; };
+
+  async function initialize() {
+    if (!api?.client) { notify('Supabase is not configured for this page.'); return; }
+    try {
+      state.user = await api.requireUser();
+      const [profile, settings] = await Promise.all([api.profile.mine(), api.settings.load()]);
+      state.profile = profile;
+      state.settings = settings;
+      updateVerification(state.user);
+      loadProfileIntoForm(profile);
+      loadSettingsIntoForm(settings);
+      const startSection = location.hash.slice(1);
+      if ($(`[data-settings-target="${startSection}"]`)) setSection(startSection);
+    } catch (error) { notify(messageFor(error, 'Your account settings could not be loaded.')); }
   }
 
-  /* One backend contract for each account-center form and safety action. */
+  function bindNavigation() {
+    $$('.settings-nav-item').forEach((button) => button.addEventListener('click', () => {
+      setSection(button.dataset.settingsTarget);
+      $('.settings-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+    $('#settings-mobile-menu')?.addEventListener('click', () => {
+      const sidebar = $('#settings-sidebar');
+      const open = sidebar.classList.toggle('open');
+      $('#settings-mobile-menu').setAttribute('aria-expanded', String(open));
+    });
+  }
+
+  function bindForms() {
+    $('#update-email-form')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const email = $('#new-email').value.trim();
+      if (!email) return notify('Enter the new email address first.');
+      setBusy(event.submitter, async () => {
+        try { await api.settings.updateEmail(email); notify('Email update requested. Check the new inbox if confirmation is enabled.'); $('#new-email').value = ''; }
+        catch (error) { notify(messageFor(error, 'Email could not be updated.')); }
+      });
+    });
+    $('#change-password-form')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const password = $('#new-password').value;
+      if (password.length < 8) return notify('Use a password with at least 8 characters.');
+      if (password !== $('#confirm-password').value) return notify('New passwords do not match.');
+      setBusy(event.submitter, async () => {
+        try { await api.settings.updatePassword(password); event.currentTarget.reset(); notify('Password updated securely.'); }
+        catch (error) { notify(messageFor(error, 'Password could not be updated.')); }
+      });
+    });
+    $('#update-phone-form')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const phone = $('#mobile-number').value.trim();
+      if (!phone) return notify('Enter a mobile number first.');
+      const submitter = event.submitter || event.currentTarget.querySelector('button[type="submit"]');
+      setBusy(submitter, async () => {
+        try {
+          if (!state.phoneChangePending) {
+            await api.auth.updatePhone(phone);
+            state.phoneChangePending = true;
+            const code = document.createElement('input');
+            code.id = 'mobile-verification-code'; code.inputMode = 'numeric'; code.autocomplete = 'one-time-code'; code.maxLength = 6; code.placeholder = '6-digit code'; code.setAttribute('aria-label', 'Mobile verification code');
+            event.currentTarget.querySelector('.setting-form-row').append(code);
+            submitter.dataset.nextLabel = 'Verify code';
+            notify('Verification code sent. Enter it, then select Verify code.');
+          } else {
+            const code = $('#mobile-verification-code')?.value.trim();
+            if (!code) throw new Error('Enter the verification code sent to your phone.');
+            await api.auth.verifyPhoneChange(phone, code);
+            await api.profile.patch({ mobile_number: phone });
+            state.phoneChangePending = false;
+            $('#mobile-verification-code')?.remove();
+            submitter.dataset.nextLabel = 'Save number';
+            notify('Mobile number verified and saved.');
+          }
+        } catch (error) { notify(messageFor(error, 'Mobile number could not be updated.')); }
+      });
+    });
+    $('#recovery-email-form')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const email = $('#recovery-email').value.trim();
+      setBusy(event.submitter, async () => { try { await api.profile.patch({ recovery_email: email || null }); notify('Recovery email saved.'); } catch (error) { notify(messageFor(error, 'Recovery email could not be saved.')); } });
+    });
+    $('#profile-settings-form')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const values = formValues(event.currentTarget);
+      if (values.username && !/^[a-z0-9_]{3,30}$/.test(values.username)) return notify('Use 3–30 lowercase letters, numbers, or underscores for your username.');
+      setBusy(event.submitter, async () => { try { state.profile = await api.profile.patch(values); notify('Profile details saved.'); } catch (error) { notify(messageFor(error, 'Profile details could not be saved.')); } });
+    });
+    $('#privacy-settings-form')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      setBusy(event.submitter, async () => { try { state.profile = await api.profile.patch(formValues(event.currentTarget)); notify('Privacy choices saved.'); } catch (error) { notify(messageFor(error, 'Privacy choices could not be saved.')); } });
+    });
+    $('#notification-settings-form')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const values = formValues(event.currentTarget);
+      delete values.sms_notifications;
+      setBusy(event.submitter, async () => { try { state.settings = await api.settings.save(values); notify('Notification choices saved.'); } catch (error) { notify(messageFor(error, 'Notification choices could not be saved.')); } });
+    });
+    $('#appearance-settings-form')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const values = formValues(event.currentTarget);
+      applyTheme(values.theme || 'light');
+      setBusy(event.submitter, async () => { try { state.settings = await api.settings.save(values); notify('Appearance saved.'); } catch (error) { notify(messageFor(error, 'Appearance could not be saved.')); } });
+    });
+    $('#accessibility-settings-form')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const values = formValues(event.currentTarget);
+      values.font_size = Number(values.font_size || 100);
+      applyAccessibility(values);
+      setBusy(event.submitter, async () => { try { state.settings = await api.settings.save(values); notify('Accessibility choices saved.'); } catch (error) { notify(messageFor(error, 'Accessibility choices could not be saved.')); } });
+    });
+  }
+
+  function bindActions() {
+    $('#font-size-range')?.addEventListener('input', (event) => applyAccessibility({ font_size: event.target.value, reduce_motion: $('#reduce-motion').checked }));
+    $$('.settings-card [data-setting-media]').forEach((input) => input.addEventListener('change', async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try { await api.profile.upload(file, input.dataset.settingMedia); notify(`${input.dataset.settingMedia === 'avatar' ? 'Profile picture' : 'Cover photo'} uploaded.`); }
+      catch (error) { notify(messageFor(error, 'Image could not be uploaded.')); }
+    }));
+    $('#logout-other-devices')?.addEventListener('click', (event) => setBusy(event.currentTarget, async () => {
+      try { await api.settings.signOut('others'); notify('Other sessions have been signed out.'); }
+      catch (error) { notify(messageFor(error, 'Other sessions could not be signed out.')); }
+    }));
+    $$('[data-session-action]').forEach((button) => button.closest('div')?.remove());
+    $$('[data-sensitive-action]').forEach((button) => button.addEventListener('click', () => showConfirm(button.dataset.sensitiveAction)));
+    $('#settings-confirm-cancel')?.addEventListener('click', closeConfirm);
+    $('#settings-confirm-continue')?.addEventListener('click', async (event) => {
+      const action = state.pendingAction;
+      closeConfirm();
+      if (action === 'delete') { location.assign('index.html#contact'); return; }
+      if (action === 'deactivate') {
+        await setBusy(event.currentTarget, async () => {
+          try { await api.profile.patch({ private_profile: true }); await api.settings.signOut('global'); location.assign('index.html'); }
+          catch (error) { notify(messageFor(error, 'Account could not be deactivated.')); }
+        });
+      }
+    });
+    $('[data-supabase-action="request-data-export"]')?.addEventListener('click', async (event) => setBusy(event.currentTarget, async () => {
+      try {
+        const exportData = { exported_at: new Date().toISOString(), account: { id: state.user?.id, email: state.user?.email }, profile: state.profile, settings: state.settings };
+        const url = URL.createObjectURL(new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' }));
+        const link = document.createElement('a'); link.href = url; link.download = 'manglik-meets-data.json'; link.click(); URL.revokeObjectURL(url);
+        notify('Your available account data has been downloaded.');
+      } catch (error) { notify(messageFor(error, 'Your data export could not be created.')); }
+    }));
+    $$('[data-supabase-action="list-blocked-users"], [data-supabase-action="list-reported-users"]').forEach((button) => button.addEventListener('click', () => notify('Safety-list management will appear here when there are records to show.')));
+    $$('[data-placeholder-action]').forEach((button) => button.addEventListener('click', () => notify('This option is not available yet.')));
+  }
+
   window.settingsDataAdapter = {
     getFormRequest(formId, payload) { const form = document.getElementById(formId); return { table: form?.dataset.supabaseTable, action: form?.dataset.supabaseAction, values: payload }; },
-    getAuthRequest(action, payload) { return { provider: 'supabase-auth', action, payload }; },
-    getStorageRequest(kind, file) { return { bucket: 'profile-media', path: `current-user/${kind}/${file?.name || 'file'}`, file }; },
-    getAccountAction(action) { return { table: 'account_requests', values: { action, requested_at: new Date().toISOString() } }; },
-    getPreferencesRequest(payload) { return { table: 'user_preferences', action: 'upsert', values: payload }; }
+    getAuthRequest(action, payload) { return { provider: 'supabase-auth', action, payload }; }
   };
 
-  const storedTheme = localStorage.getItem('manglik-meets-theme');
-  if (storedTheme) { const themeChoice = $(`input[name="theme"][value="${storedTheme}"]`); if (themeChoice) themeChoice.checked = true; applyTheme(storedTheme); }
-  window.addEventListener('manglik-verification-message', (event) => showToast(`${event.detail.title}: ${event.detail.body}`));
-  initialiseAccount(); initialiseEvents();
+  $('#current-email').textContent = 'Loading account email…';
+  $('#settings-bio').value = '';
+  $('#settings-username').value = '';
+  bindNavigation();
+  bindForms();
+  bindActions();
+  initialize();
 }());

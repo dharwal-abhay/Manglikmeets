@@ -1,4 +1,4 @@
-const profileState = {
+const legacyProfileTemplate = {
   name: 'Aanya Sharma', username: 'aanyasharma', dob: '1998-06-14', age: 27,
   gender: 'Woman', height: "5'4\" – 5'7\"", weight: '', religion: 'Hindu', caste: '',
   manglikStatus: 'Manglik', profession: 'Product Designer', education: 'M.Des, NID',
@@ -11,6 +11,15 @@ const profileState = {
   manglikPreference: 'Open to discuss respectfully', distance: 'Open to relocate', preferredLanguages: 'Hindi, English', city: 'New Delhi, India',
   privacy: { hideAge: false, hideCity: false, hideProfession: false, hideLastSeen: false, hideOnlineStatus: false, privateProfile: false },
   media: { avatar: '', cover: '', gallery: [{ id: 'travel', label: 'Travel days', className: 'photo-one' }, { id: 'rituals', label: 'Little rituals', className: 'photo-two' }, { id: 'creative', label: 'Making things', className: 'photo-three' }] }
+};
+
+const profileState = {
+  name: '', username: '', dob: '', age: '', gender: '', height: '', weight: '', religion: '', caste: '',
+  manglikStatus: '', profession: '', education: '', income: '', languages: '', bio: '', interests: '', hobbies: '', personalityTraits: '',
+  smoking: '', drinking: '', foodPreference: '', fitness: '', pets: '', lookingFor: '', marriageTimeline: '', familyType: '', values: '', expectations: '',
+  preferredAge: '', preferredReligion: '', preferredProfession: '', preferredEducation: '', preferredHeight: '', manglikPreference: '', distance: '', preferredLanguages: '', city: '',
+  privacy: { hideAge: false, hideCity: false, hideProfession: false, hideLastSeen: false, hideOnlineStatus: false, privateProfile: false },
+  media: { avatar: '', cover: '', gallery: [] }
 };
 
 const profileElements = {
@@ -95,6 +104,13 @@ const renderProfile = () => {
   document.querySelectorAll('[data-privacy-display="city"]').forEach((element) => element.hidden = profileState.privacy.hideCity);
   document.querySelectorAll('[data-privacy-display="profession"]').forEach((element) => element.hidden = profileState.privacy.hideProfession);
   document.querySelectorAll('[data-privacy-display="onlineStatus"]').forEach((element) => element.hidden = profileState.privacy.hideOnlineStatus);
+  const about = document.querySelector('[data-component="about-section"]');
+  if (about) {
+    const heading = about.querySelector('h2');
+    const copy = about.querySelector('.body-copy');
+    if (heading) heading.textContent = profileState.name ? `About ${profileState.name.split(' ')[0]}` : 'About you';
+    if (copy) copy.textContent = profileState.bio || 'Complete your profile to share the values, interests, and everyday details that make your introduction feel real.';
+  }
   updateCompletion();
   renderGallery();
 };

@@ -73,7 +73,7 @@
     async verifyPhoneOtp(phone, token) { return run(client.auth.verifyOtp({ phone, token, type: 'sms' }), 'verify phone OTP'); },
     async updatePhone(phone) { return run(client.auth.updateUser({ phone }), 'send phone verification'); },
     async verifyPhoneChange(phone, token) { return run(client.auth.verifyOtp({ phone, token, type: 'phone_change' }), 'verify phone change'); },
-    async googleSignIn() { return run(client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } }), 'start Google login'); },
+    async googleSignIn() { return run(client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}dashboard.html` } }), 'start Google login'); },
     async resetPassword(email) { return run(client.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}${window.location.pathname}` }), 'send password reset'); },
     async updatePassword(password) { return run(client.auth.updateUser({ password }), 'update password'); },
     async resendEmailVerification(email) { return run(client.auth.resend({ type: 'signup', email, options: { emailRedirectTo: window.location.origin } }), 'resend verification'); },

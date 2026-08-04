@@ -18,6 +18,7 @@
     <script src="auth-guard.js"></script>
     <script src="verification.js"></script>
     <script src="notification-badges.js"></script>
+    <script src="navigation.js"></script>
   </head>
   <body>
     <div data-verification-slot hidden></div>
@@ -32,7 +33,7 @@
       <div class="content-shell">
         <header class="topbar"><button class="mobile-menu-button" id="settings-mobile-menu" type="button" aria-controls="settings-sidebar" aria-expanded="false">☰</button><div class="settings-top-title"><p class="eyebrow">Your account, your choices</p><strong>Settings</strong></div><div class="topbar-actions"><a class="icon-button" href="notifications.html" aria-label="Notifications">♧<i class="alert-dot" data-notification-dot></i></a><a class="icon-button" href="messages.html" aria-label="Messages">◒<i class="alert-dot"></i></a><a class="top-avatar" href="dashboard.html" aria-label="Open profile">AS</a></div></header>
         <main class="settings-main" data-component="account-center">
-          <section class="settings-hero"><div><p class="eyebrow">Account center</p><h1>Make this space <span>feel like yours.</span></h1><p>Manage your account, profile visibility, safety and the way Manglik Meets works for you.</p></div><div class="settings-profile-summary"><span>AS</span><div><strong>Aanya Sharma</strong><small>@aanyasharma</small></div></div></section>
+          <section class="settings-hero"><div><p class="eyebrow">Account center</p><h1>Make this space <span>feel like yours.</span></h1><p>Manage your account, profile visibility, safety and the way Manglik Meets works for you.</p></div><div class="settings-profile-summary"><span data-current-user-initials>MM</span><div><strong data-current-user-name>Your profile</strong><small data-current-user-username></small></div></div></section>
           <div class="settings-layout">
             <nav class="settings-nav" aria-label="Settings categories"><button class="settings-nav-item active" data-settings-target="account">Account</button><button class="settings-nav-item" data-settings-target="security">Security</button><button class="settings-nav-item" data-settings-target="profile">Profile</button><button class="settings-nav-item" data-settings-target="privacy">Privacy</button><button class="settings-nav-item" data-settings-target="notifications">Notifications</button><button class="settings-nav-item" data-settings-target="appearance">Appearance</button><button class="settings-nav-item" data-settings-target="accessibility">Accessibility</button><button class="settings-nav-item" data-settings-target="data">Data</button><button class="settings-nav-item" data-settings-target="support">Support</button></nav>
             <div class="settings-content">
@@ -61,6 +62,5 @@
     <div class="settings-confirm" id="settings-confirm" hidden><div><p class="eyebrow">Confirm action</p><h2 id="settings-confirm-title">Are you sure?</h2><p id="settings-confirm-copy"></p><div><button class="outline-button" id="settings-confirm-cancel" type="button">Cancel</button><button class="danger-button" id="settings-confirm-continue" type="button">Continue</button></div></div></div>
     <div class="settings-toast" id="settings-toast" role="status" aria-live="polite"></div>
     <script src="settings.js"></script>
-    <script src="supabase-integration.js"></script>
   </body>
 </html>

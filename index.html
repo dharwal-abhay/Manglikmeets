@@ -14,6 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app-config.js"></script>
     <script src="auth-session.js"></script>
+    <script src="guest-landing.js"></script>
     <script src="supabase-services.js"></script>
     <script src="verification.js"></script>
     <script src="contact-service.js" defer></script>
@@ -714,8 +715,7 @@
 
         const next = new URLSearchParams(location.search).get('next');
         if (next && !next.includes('://')) { location.assign(next); return; }
-        $('#auth-modal').classList.remove('open');
-        openMessage('Welcome back', 'Your account is ready to use.');
+        location.assign('dashboard.html');
       };
 
       $('#register-form').onsubmit = async (event) => {
@@ -737,6 +737,7 @@
           return;
         }
 
+        if (data.session) { location.assign('dashboard.html'); return; }
         $('#auth-modal').classList.remove('open');
         const feedback = window.ManglikVerification.getSignUpFeedback(data);
         openMessage(feedback.title, feedback.body);
@@ -772,7 +773,7 @@
         const phone = $('#phone-number').value.trim();
         try {
           if (!phoneCodeSent) { await window.ManglikSupabase.auth.phoneOtp(phone); phoneCodeSent = true; $('#phone-otp').hidden = false; $('#otp-label').hidden = false; $('#phone-submit').textContent = 'Verify code'; openMessage('Code sent', 'Enter the verification code sent to your phone.'); }
-          else { await window.ManglikSupabase.auth.verifyPhoneOtp(phone, $('#phone-otp').value.trim()); $('#auth-modal').classList.remove('open'); openMessage('Welcome back', 'Your phone number has been verified.'); }
+          else { await window.ManglikSupabase.auth.verifyPhoneOtp(phone, $('#phone-otp').value.trim()); const next = new URLSearchParams(location.search).get('next'); location.assign(next && !next.includes('://') ? next : 'dashboard.html'); }
         } catch (error) { openMessage('Phone sign-in unavailable', error.message); }
       };
 

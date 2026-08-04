@@ -1,7 +1,7 @@
 /* Shared authentication and role guard for member and administrator routes. */
 (function () {
   'use strict';
-  const protectedPages = new Set(['dashboard.html','discover.html','feed.html','matches.html','messages.html','notifications.html','settings.html','admin.html','admin-contact.html']);
+  const protectedPages = new Set(['dashboard.html','discover.html','feed.html','matches.html','messages.html','notifications.html','saved.html','settings.html','admin.html','admin-contact.html']);
   const currentPage = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
   if (!protectedPages.has(currentPage)) return;
 

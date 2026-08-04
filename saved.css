@@ -1,0 +1,2 @@
+.empty-state{margin:20px 0;padding:42px 22px;border:1px dashed #e7c7a9;border-radius:16px;background:#fffaf5;text-align:center;color:#746b70}.empty-state strong{display:block;margin-bottom:7px;color:#302a32;font:700 21px "Playfair Display",serif}.empty-state p{max-width:390px;margin:0 auto 19px;font-size:13px;line-height:1.6}.empty-state .primary-button{display:inline-block;text-decoration:none}
+body.dark-mode .empty-state{background:#30282d;border-color:#664c3d;color:#ddd0d4}body.dark-mode .empty-state strong{color:#f5ecef}
