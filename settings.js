@@ -8,7 +8,13 @@
   const state = { user: null, profile: null, settings: null, pendingAction: null, phoneChangePending: false };
   let toastTimer;
 
-  const messageFor = (error, fallback) => error?.message || fallback;
+  const messageFor = (error, fallback) => {
+    if (!error) return fallback;
+    if (error.message?.includes('profiles_username_unique') || error.message?.includes('duplicate key')) {
+      return 'This username is already taken. Please choose another.';
+    }
+    return error.message || fallback;
+  };
   const notify = (message) => {
     const toast = $('#settings-toast');
     if (!toast) return;
@@ -84,11 +90,12 @@
   const loadSettingsIntoForm = (settings) => {
     if (!settings) return;
     Object.entries(settings).forEach(([key, value]) => {
-      const field = $(`[data-setting-field="${key}"]`);
-      if (!field) return;
-      if (field.type === 'checkbox') field.checked = Boolean(value);
-      else if (field.type === 'radio') field.checked = field.value === value;
-      else field.value = value;
+      const fields = $$(`[data-setting-field="${key}"]`);
+      fields.forEach((field) => {
+        if (field.type === 'checkbox') field.checked = Boolean(value);
+        else if (field.type === 'radio') field.checked = field.value === value;
+        else field.value = value;
+      });
     });
     applyTheme(settings.theme || 'light');
     applyAccessibility(settings);
@@ -190,7 +197,13 @@
       event.preventDefault();
       const values = formValues(event.currentTarget);
       if (values.username && !/^[a-z0-9_]{3,30}$/.test(values.username)) return notify('Use 3–30 lowercase letters, numbers, or underscores for your username.');
-      setBusy(event.submitter, async () => { try { state.profile = await api.profile.patch(values); notify('Profile details saved.'); } catch (error) { notify(messageFor(error, 'Profile details could not be saved.')); } });
+      setBusy(event.submitter, async () => {
+        try {
+          state.profile = await api.profile.patch(values);
+          window.ManglikNavigation?.loadIdentity();
+          notify('Profile details saved.');
+        } catch (error) { notify(messageFor(error, 'Profile details could not be saved.')); }
+      });
     });
     $('#privacy-settings-form')?.addEventListener('submit', (event) => {
       event.preventDefault();
@@ -218,12 +231,21 @@
   }
 
   function bindActions() {
+    window.addEventListener('hashchange', () => {
+      const startSection = location.hash.slice(1);
+      if ($(`[data-settings-target="${startSection}"]`)) setSection(startSection);
+    });
     $('#font-size-range')?.addEventListener('input', (event) => applyAccessibility({ font_size: event.target.value, reduce_motion: $('#reduce-motion').checked }));
+    $('#reduce-motion')?.addEventListener('change', (event) => applyAccessibility({ font_size: $('#font-size-range').value, reduce_motion: event.target.checked }));
+    $$('input[name="theme"]').forEach((radio) => radio.addEventListener('change', (event) => applyTheme(event.target.value)));
     $$('.settings-card [data-setting-media]').forEach((input) => input.addEventListener('change', async () => {
       const file = input.files?.[0];
       if (!file) return;
-      try { await api.profile.upload(file, input.dataset.settingMedia); notify(`${input.dataset.settingMedia === 'avatar' ? 'Profile picture' : 'Cover photo'} uploaded.`); }
-      catch (error) { notify(messageFor(error, 'Image could not be uploaded.')); }
+      try {
+        await api.profile.upload(file, input.dataset.settingMedia);
+        window.ManglikNavigation?.loadIdentity();
+        notify(`${input.dataset.settingMedia === 'avatar' ? 'Profile picture' : 'Cover photo'} uploaded.`);
+      } catch (error) { notify(messageFor(error, 'Image could not be uploaded.')); }
     }));
     $('#logout-other-devices')?.addEventListener('click', (event) => setBusy(event.currentTarget, async () => {
       try { await api.settings.signOut('others'); notify('Other sessions have been signed out.'); }
@@ -232,6 +254,8 @@
     $$('[data-session-action]').forEach((button) => button.closest('div')?.remove());
     $$('[data-sensitive-action]').forEach((button) => button.addEventListener('click', () => showConfirm(button.dataset.sensitiveAction)));
     $('#settings-confirm-cancel')?.addEventListener('click', closeConfirm);
+    $('#settings-confirm')?.addEventListener('click', (event) => { if (event.target === $('#settings-confirm')) closeConfirm(); });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !$('#settings-confirm')?.hidden) closeConfirm(); });
     $('#settings-confirm-continue')?.addEventListener('click', async (event) => {
       const action = state.pendingAction;
       closeConfirm();
@@ -260,9 +284,7 @@
     getAuthRequest(action, payload) { return { provider: 'supabase-auth', action, payload }; }
   };
 
-  $('#current-email').textContent = 'Loading account email…';
-  $('#settings-bio').value = '';
-  $('#settings-username').value = '';
+  if ($('#current-email')) $('#current-email').textContent = 'Loading account email…';
   bindNavigation();
   bindForms();
   bindActions();
