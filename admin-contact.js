@@ -14,7 +14,33 @@
   async function update(id, status) { try { const { error } = await api.client.from('contact_messages').update({ status }).eq('id', id); if (error) throw error; await load(); toast(status === 'archived' ? 'Message archived.' : `Message marked ${status.replace('_', ' ')}.`); } catch (error) { toast(`Could not update message: ${error.message}`); } }
   async function remove(id) { if (!window.confirm('Delete this support message permanently?')) return; try { const { error } = await api.client.from('contact_messages').delete().eq('id', id); if (error) throw error; state.selected = null; await load(); toast('Message deleted.'); } catch (error) { toast(`Could not delete message: ${error.message}`); } }
   async function reply(event) { event.preventDefault(); const replyText = $('#contact-reply').value.trim(); if (replyText.length < 2) return; const button = event.currentTarget.querySelector('button[type="submit"]'); button.disabled = true; button.textContent = 'Sending…'; try { const session = await window.ManglikAuth.start(); const response = await fetch('/.netlify/functions/contact-reply', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ id: state.selected.id, reply: replyText }) }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error?.message || 'Reply failed.'); await load(); toast('Reply sent and message resolved.'); } catch (error) { toast(error.message); } finally { button.disabled = false; button.textContent = 'Send reply'; } }
-  async function initialise() { try { await window.ManglikAuth.start(); state.user = await api.requireUser(); if (state.user.app_metadata?.role !== 'admin') throw new Error('This inbox is available to support administrators only.'); await load(); state.channel = api.client.channel('admin-contact-inbox').on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, load).subscribe(); } catch (error) { $('#contact-inbox-loading').textContent = error.message; $('#contact-inbox-loading').hidden = false; } }
+  async function initialise() {
+    try {
+      await window.ManglikAuth.start();
+      state.user = await api.requireUser();
+
+      const jwtRole = state.user.app_metadata?.role;
+      let isAdmin = jwtRole === 'admin';
+      if (!isAdmin) {
+        try {
+          const { data } = await api.client.from('user_roles').select('roles(name)').eq('user_id', state.user.id);
+          if (data && data.some((entry) => (Array.isArray(entry.roles) ? entry.roles[0]?.name : entry.roles?.name) === 'admin')) {
+            isAdmin = true;
+          }
+        } catch (e) {
+          console.warn('Error checking admin role in contact inbox:', e);
+        }
+      }
+
+      if (!isAdmin) throw new Error('This inbox is available to support administrators only.');
+
+      await load();
+      state.channel = api.client.channel('admin-contact-inbox').on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, load).subscribe();
+    } catch (error) {
+      $('#contact-inbox-loading').textContent = error.message;
+      $('#contact-inbox-loading').hidden = false;
+    }
+  }
   $('#contact-inbox-search').addEventListener('input', (event) => { state.query = event.target.value.trim().toLowerCase(); renderList(); }); $('#contact-status-filter').addEventListener('change', (event) => { state.status = event.target.value; renderList(); }); $('#refresh-contact-inbox').addEventListener('click', load); $('#contact-inbox-list').addEventListener('click', (event) => { const row = event.target.closest('[data-contact-id]'); if (!row) return; state.selected = state.messages.find((item) => item.id === row.dataset.contactId) || null; renderList(); renderDetail(); }); $('#contact-detail-panel').addEventListener('click', (event) => { const action = event.target.closest('[data-contact-action]'); if (!action || !state.selected) return; if (action.dataset.contactAction === 'delete') remove(state.selected.id); else update(state.selected.id, action.dataset.contactAction); }); $('#contact-detail-panel').addEventListener('submit', (event) => { if (event.target.id === 'contact-reply-form') reply(event); }); $('#contact-admin-menu').addEventListener('click', () => $('#contact-admin-sidebar').classList.toggle('open'));
   initialise();
 }());

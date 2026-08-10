@@ -21,13 +21,21 @@
 
   function openConfirm(action, detail, onConfirm) {
     state.pendingAction = onConfirm;
+    const modal = $('#admin-confirm');
+    if (!modal) return;
     $('#admin-confirm-title').textContent = `${action} this record?`;
     $('#admin-confirm-copy').textContent = detail;
-    $('#admin-confirm').hidden = false;
+    modal.hidden = false;
+    modal.classList.add('show');
+    modal.style.setProperty('display', 'grid', 'important');
   }
   function closeConfirm() {
     state.pendingAction = null;
-    $('#admin-confirm').hidden = true;
+    const modal = $('#admin-confirm');
+    if (!modal) return;
+    modal.hidden = true;
+    modal.classList.remove('show');
+    modal.style.setProperty('display', 'none', 'important');
   }
 
   /* ── View switcher ──────────────────────────────────────── */
@@ -188,6 +196,7 @@
 
   /* ── Wire everything up ─────────────────────────────────── */
   function initialise() {
+    closeConfirm();
     $('#activity-list').innerHTML = activityMarkup();
     $('#review-queue').innerHTML = reviewQueueMarkup();
     renderReports();

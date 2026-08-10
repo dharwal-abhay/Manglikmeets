@@ -17,15 +17,22 @@
     if (!auth?.client) return deny('Authentication is unavailable');
     const session = await auth.start();
     if (!session?.user) return redirectToLogin();
-    const requiredRole = document.body.dataset.requiredRole || (currentPage.startsWith('admin') ? 'admin' : 'user');
+    const requiredRole = document.body?.dataset?.requiredRole || (currentPage.startsWith('admin') ? 'admin' : 'user');
     if (requiredRole === 'user') return;
     const jwtRole = session.user.app_metadata?.role;
     if (jwtRole === 'admin') return;
     try {
       const { data, error } = await auth.client.from('user_roles').select('roles(name)').eq('user_id', session.user.id);
-      if (error || !data.some((entry) => entry.roles?.name === requiredRole || (requiredRole === 'moderator' && entry.roles?.name === 'admin'))) return deny('Access restricted');
+      if (error || !data || !data.some((entry) => {
+        const roleName = Array.isArray(entry.roles) ? entry.roles[0]?.name : entry.roles?.name;
+        return roleName === requiredRole || (requiredRole === 'moderator' && roleName === 'admin');
+      })) return deny('Access restricted');
     } catch { deny('Access restricted'); }
   };
-  document.addEventListener('DOMContentLoaded', run, { once: true });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run, { once: true });
+  } else {
+    run();
+  }
   window.ManglikRouteGuard = { run, redirectToLogin };
 }());
