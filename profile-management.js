@@ -264,7 +264,7 @@ profileElements.wizardForm.addEventListener('submit', (event) => {
   profileNotify('Your profile is ready to grow with you.');
 });
 
-document.querySelector('#profile-images-upload').addEventListener('change', (event) => readImage(event.target.files[0], (image) => { profileState.media.avatar = image; renderProfile(); }));
+document.querySelector('#profile-picture-upload').addEventListener('change', (event) => readImage(event.target.files[0], (image) => { profileState.media.avatar = image; renderProfile(); }));
 document.querySelector('#cover-picture-upload').addEventListener('change', (event) => readImage(event.target.files[0], (image) => { profileState.media.cover = image; renderProfile(); }));
 document.querySelector('#gallery-picture-upload').addEventListener('change', (event) => {
   [...event.target.files].slice(0, 6 - profileState.media.gallery.length).forEach((file, index) => readImage(file, (image) => {
