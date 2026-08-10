@@ -68,7 +68,6 @@
       }, true);
     });
   }
-
   async function loadIdentity() {
     const auth = window.ManglikAuth;
     const session = await auth?.start();
@@ -99,8 +98,46 @@
     const mobileInput = document.querySelector('#mobile-number');
     if (mobileInput && profile?.mobile_number) mobileInput.value = profile.mobile_number;
     document.documentElement.dataset.authenticatedUser = session.user.id;
-  }
 
+    // Check if logged-in user is an admin, and dynamically append the Admin Panel nav link
+    const jwtRole = session.user.app_metadata?.role;
+    let isAdmin = jwtRole === 'admin';
+    if (!isAdmin) {
+      try {
+        const { data } = await auth.client.from('user_roles').select('roles(name)').eq('user_id', session.user.id);
+        if (data && data.some((entry) => entry.roles?.name === 'admin')) {
+          isAdmin = true;
+        }
+      } catch (e) {
+        console.warn('Error checking admin role in navigation:', e);
+      }
+    }
+
+    if (isAdmin) {
+      document.querySelectorAll('.sidebar-nav').forEach((nav) => {
+        if (nav.querySelector('[data-nav-item="admin"]') || nav.querySelector('[data-nav-key="admin"]')) return;
+
+        const adminItem = document.createElement('a');
+        adminItem.className = 'nav-item';
+        adminItem.href = 'admin.html';
+        adminItem.dataset.navItem = 'admin';
+        adminItem.dataset.navKey = 'admin';
+        adminItem.innerHTML = '<span>▦</span>Admin Panel';
+
+        const settingsItem = nav.querySelector('[data-nav-item="settings"]') || nav.querySelector('[data-nav-key="settings"]');
+        if (settingsItem) {
+          nav.insertBefore(adminItem, settingsItem);
+        } else {
+          nav.appendChild(adminItem);
+        }
+
+        const currentPageName = (location.pathname.split('/').pop() || 'dashboard.html').toLowerCase();
+        if (currentPageName === 'admin.html' || currentPageName === 'admin-contact.html') {
+          adminItem.classList.add('active');
+        }
+      });
+    }
+  }
   document.addEventListener('DOMContentLoaded', () => {
     connectNavigation();
     loadIdentity();

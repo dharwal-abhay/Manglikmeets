@@ -64,9 +64,6 @@
           </a>
         </nav>
         <div class="account-actions" id="account-actions">
-          <button class="login" data-auth="login">
-            Log In
-          </button>
           <button class="register" data-auth="register">
             Register
           </button>
@@ -567,18 +564,10 @@
           <button class="submit">
             Log In
           </button>
-          <button class="forgot" type="button" id="phone-login">Use phone OTP</button>
-          <button class="forgot" type="button" id="google-login">Continue with Google</button>
+          <button class="forgot" type="button" id="admin-login-link" style="display: block; margin: 10px auto 0; font-weight: 600;">Admin Portal Log In</button>
           <p class="note">
             A thoughtful space for meaningful connections.
           </p>
-        </form>
-        <form class="auth-form" id="phone-form">
-          <p class="note" style="text-align:left">Use the mobile number linked to your account. We will send a one-time code.</p>
-          <label>Mobile number</label><input id="phone-number" type="tel" autocomplete="tel" placeholder="+91 00000 00000">
-          <label id="otp-label" hidden>Verification code</label><input id="phone-otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" hidden placeholder="6-digit code">
-          <button class="submit" id="phone-submit" type="submit">Send code</button>
-          <p class="note"><button class="forgot" type="button" id="phone-back">Back to Log In</button></p>
         </form>
         <form class="auth-form" id="register-form">
           <label>
@@ -638,25 +627,53 @@
 
       $('#message-close').onclick = () => $('#message-modal').classList.remove('open');
 
+      let isAdminLoginMode = false;
+
       const showAuth = (kind) => {
         const isUtility = kind === 'reset' || kind === 'phone' || kind === 'new-password';
-        $('#auth-title').textContent = kind === 'reset' ? 'Reset your password' : kind === 'new-password' ? 'Choose a new password' : kind === 'phone' ? 'Log in with your phone' : kind === 'login' ? 'Welcome back' : 'Create your profile';
-        $('#tabs').style.display = isUtility ? 'none' : 'flex';
+        
+        if (kind !== 'login') {
+          isAdminLoginMode = false;
+        }
+
+        const authBox = $('.auth-box');
+        if (authBox) {
+          authBox.classList.toggle('admin-theme', isAdminLoginMode);
+        }
+
+        $('#auth-title').textContent = kind === 'reset' ? 'Reset your password' : kind === 'new-password' ? 'Choose a new password' : kind === 'phone' ? 'Log in with your phone' : kind === 'login' ? (isAdminLoginMode ? 'Admin Portal Login' : 'Welcome back') : 'Create your profile';
+        $('#tabs').style.display = (isUtility || isAdminLoginMode) ? 'none' : 'flex';
         $$('.tab').forEach((tab) => tab.classList.toggle('selected', tab.dataset.tab === kind));
         $$('.auth-form').forEach((form) => form.classList.toggle('active', form.id === `${kind}-form`));
+
+        if (kind === 'login') {
+          const submitBtn = $('#login-form .submit');
+          const adminLink = $('#admin-login-link');
+
+          if (submitBtn) submitBtn.textContent = isAdminLoginMode ? 'Log In as Admin' : 'Log In';
+          if (adminLink) adminLink.textContent = isAdminLoginMode ? 'Back to Member Log In' : 'Admin Portal Log In';
+        }
+
         $('#auth-modal').classList.add('open');
       };
       if (new URLSearchParams(location.search).has('next')) showAuth('login');
 
-      const renderAccountActions = (session) => {
+      const renderAccountActions = async (session) => {
         const accountActions = $('#account-actions');
 
         if (!session?.user) {
           accountActions.innerHTML = `
-            <button class="login" data-auth="login">Log In</button>
+            <button class="admin-portal-link" id="header-admin-login" type="button">Admin Portal</button>
             <button class="register" data-auth="register">Register</button>
           `;
           $$('[data-auth]').forEach((button) => button.onclick = () => showAuth(button.dataset.auth));
+          const headerAdmin = $('#header-admin-login');
+          if (headerAdmin) {
+            headerAdmin.onclick = () => {
+              isAdminLoginMode = true;
+              showAuth('login');
+            };
+          }
           return;
         }
 
@@ -666,6 +683,30 @@
         const name = document.createElement('span');
         name.className = 'account-name';
         name.textContent = `Hi, ${displayName}`;
+        accountActions.append(name);
+
+        // Check if user is admin
+        const jwtRole = session.user.app_metadata?.role;
+        let isAdmin = jwtRole === 'admin';
+        if (!isAdmin) {
+          try {
+            const { data } = await supabaseClient.from('user_roles').select('roles(name)').eq('user_id', session.user.id);
+            if (data && data.some((entry) => entry.roles?.name === 'admin')) {
+              isAdmin = true;
+            }
+          } catch (e) {
+            console.warn('Error checking admin role in header:', e);
+          }
+        }
+
+        if (isAdmin) {
+          const adminBtn = document.createElement('a');
+          adminBtn.className = 'admin-portal-link';
+          adminBtn.href = 'admin.html';
+          adminBtn.textContent = 'Admin Panel';
+          adminBtn.style.marginRight = '12px';
+          accountActions.append(adminBtn);
+        }
 
         const logout = document.createElement('button');
         logout.className = 'logout';
@@ -675,7 +716,7 @@
           await supabaseClient.auth.signOut();
         };
 
-        accountActions.append(name, logout);
+        accountActions.append(logout);
       };
 
       const requireSupabase = () => {
@@ -692,11 +733,17 @@
 
       $$('.tab').forEach((tab) => tab.onclick = () => showAuth(tab.dataset.tab));
       $('#forgot').onclick = () => showAuth('reset');
-      $('#phone-login').onclick = () => showAuth('phone');
-      $('#phone-back').onclick = () => showAuth('login');
-      $('#google-login').onclick = async () => { if (!requireSupabase()) return; const { error } = await window.ManglikSupabase.auth.googleSignIn(); if (error) openMessage('Google sign-in unavailable', error.message); };
       $('#back-login').onclick = () => showAuth('login');
       $('#auth-close').onclick = () => $('#auth-modal').classList.remove('open');
+      
+      const adminLoginLink = $('#admin-login-link');
+      if (adminLoginLink) {
+        adminLoginLink.onclick = () => {
+          isAdminLoginMode = !isAdminLoginMode;
+          showAuth('login');
+        };
+      }
+
       $('#login-form').onsubmit = async (event) => {
         event.preventDefault();
         if (!requireSupabase()) return;
@@ -713,9 +760,33 @@
           return;
         }
 
+        // Check if the user has an admin role
+        const freshSession = (await supabaseClient.auth.getSession()).data.session;
+        let redirectAdmin = false;
+        if (freshSession?.user) {
+          const jwtRole = freshSession.user.app_metadata?.role;
+          if (jwtRole === 'admin') {
+            redirectAdmin = true;
+          } else {
+            try {
+              const { data } = await supabaseClient.from('user_roles').select('roles(name)').eq('user_id', freshSession.user.id);
+              if (data && data.some((entry) => entry.roles?.name === 'admin')) {
+                redirectAdmin = true;
+              }
+            } catch (e) {
+              console.warn('Error verifying admin status:', e);
+            }
+          }
+        }
+
         const next = new URLSearchParams(location.search).get('next');
         if (next && !next.includes('://')) { location.assign(next); return; }
-        location.assign('dashboard.html');
+        
+        if (redirectAdmin || isAdminLoginMode) {
+          location.assign('admin.html');
+        } else {
+          location.assign('dashboard.html');
+        }
       };
 
       $('#register-form').onsubmit = async (event) => {
@@ -767,15 +838,7 @@
         try { await window.ManglikSupabase.auth.updatePassword(password); $('#auth-modal').classList.remove('open'); openMessage('Password updated', 'You can now sign in with your new password.'); } catch (error) { openMessage('Unable to update password', error.message); }
       };
 
-      let phoneCodeSent = false;
-      $('#phone-form').onsubmit = async (event) => {
-        event.preventDefault(); if (!requireSupabase()) return;
-        const phone = $('#phone-number').value.trim();
-        try {
-          if (!phoneCodeSent) { await window.ManglikSupabase.auth.phoneOtp(phone); phoneCodeSent = true; $('#phone-otp').hidden = false; $('#otp-label').hidden = false; $('#phone-submit').textContent = 'Verify code'; openMessage('Code sent', 'Enter the verification code sent to your phone.'); }
-          else { await window.ManglikSupabase.auth.verifyPhoneOtp(phone, $('#phone-otp').value.trim()); const next = new URLSearchParams(location.search).get('next'); location.assign(next && !next.includes('://') ? next : 'dashboard.html'); }
-        } catch (error) { openMessage('Phone sign-in unavailable', error.message); }
-      };
+
 
       renderAccountActions(null);
       if (supabaseClient) {
