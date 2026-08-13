@@ -38,13 +38,14 @@
     ]
   };
 
-  const state = { activeChat: 'rohan', filter: 'recent', search: '', messageSearch: '', replyTo: null, imageUrl: '', typing: true };
+  const state = { activeChat: 'rohan', filter: 'recent', search: '', messageSearch: '', imageUrl: '' };
   const $ = (selector, scope = document) => scope.querySelector(selector);
   const $$ = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
   let toastTimer;
 
   function showToast(message) {
     const toast = $('#messages-toast');
+    if (!toast) return;
     toast.textContent = message;
     toast.classList.add('show');
     clearTimeout(toastTimer);
@@ -64,32 +65,40 @@
   }
 
   function renderChatList() {
+    const list = $('#chat-list');
+    if (!list) return;
     const result = filteredChats();
-    $('#chat-list').innerHTML = result.map((chat) => `<button class="chat-row ${chat.id === state.activeChat ? 'active' : ''}" type="button" data-chat-id="${chat.id}"><span class="chat-avatar ${chat.tone}">${chat.initials}${chat.online ? '<i class="online-dot"></i>' : ''}</span><span class="chat-row-copy"><strong>${escapeHtml(chat.name)}</strong><span class="${chat.unread ? 'unread-preview' : ''}">${escapeHtml(chat.preview)}</span></span><span class="chat-row-meta"><small>${chat.time}</small>${chat.unread ? `<b class="unread-badge">${chat.unread}</b>` : chat.favorite ? '<b class="favorite-star">★</b>' : ''}</span></button>`).join('');
-    $('#chat-list-empty').hidden = result.length !== 0;
-    $('#unread-count').textContent = chats.reduce((total, chat) => total + chat.unread, 0);
+    list.innerHTML = result.map((chat) => `<button class="chat-row ${chat.id === state.activeChat ? 'active' : ''}" type="button" data-chat-id="${chat.id}"><span class="chat-avatar ${chat.tone}">${chat.initials}${chat.online ? '<i class="online-dot"></i>' : ''}</span><span class="chat-row-copy"><strong>${escapeHtml(chat.name)}</strong><span class="${chat.unread ? 'unread-preview' : ''}">${escapeHtml(chat.preview)}</span></span><span class="chat-row-meta"><small>${chat.time}</small>${chat.unread ? `<b class="unread-badge">${chat.unread}</b>` : chat.favorite ? '<b class="favorite-star">★</b>' : ''}</span></button>`).join('');
+    const emptyNode = $('#chat-list-empty');
+    if (emptyNode) emptyNode.hidden = result.length !== 0;
+    const unreadNode = $('#unread-count');
+    if (unreadNode) unreadNode.textContent = chats.reduce((total, chat) => total + chat.unread, 0);
   }
 
   function renderHeader() {
     const chat = getChat();
-    $('#chat-header').innerHTML = `<button class="chat-mobile-list-toggle" id="chat-mobile-list-toggle" type="button" aria-label="Show chats">‹</button><span class="chat-avatar ${chat.tone}">${chat.initials}${chat.online ? '<i class="online-dot"></i>' : ''}</span><div class="chat-contact"><strong>${escapeHtml(chat.name)}</strong><span>${chat.online ? 'Online now' : 'Last active recently'}</span></div><div class="chat-header-actions"><button type="button" data-header-action="call" aria-label="Call">⌕</button><button type="button" data-header-action="search" aria-label="Search messages">⌕</button><button type="button" data-header-action="details" aria-label="Conversation info">ⓘ</button></div>`;
-    $('#typing-name').textContent = `${chat.name.split(' ')[0]} is typing`;
-    $('#typing-indicator').hidden = !state.typing;
+    const headerNode = $('#chat-header');
+    if (!headerNode || !chat) return;
+    headerNode.innerHTML = `<button class="chat-mobile-list-toggle" id="chat-mobile-list-toggle" type="button" aria-label="Show chats">‹</button><span class="chat-avatar ${chat.tone}">${chat.initials}${chat.online ? '<i class="online-dot"></i>' : ''}</span><div class="chat-contact"><strong>${escapeHtml(chat.name)}</strong><span>${chat.online ? 'Online now' : 'Last active recently'}</span></div><div class="chat-header-actions"><button type="button" data-header-action="search" aria-label="Search messages">⌕</button><button type="button" data-header-action="details" aria-label="Conversation info">ⓘ</button></div>`;
   }
 
   function renderDetails() {
     const chat = getChat();
-    $('#conversation-details').innerHTML = `<div class="detail-avatar ${chat.tone}">${chat.initials}${chat.online ? '<i class="online-dot"></i>' : ''}</div><h1 class="detail-name">${escapeHtml(chat.name)}</h1><p class="detail-status">${chat.online ? 'Online now' : 'Recently active'}</p><div class="detail-actions"><button type="button" data-detail-action="profile">View profile</button><button type="button" data-detail-action="mute">Mute</button><button type="button" data-detail-action="favorite">${chat.favorite ? '★ Favorite' : 'Add favorite'}</button></div><section class="detail-section"><h2>Shared media</h2><button class="text-action" type="button" data-detail-action="media">View all</button><div class="shared-media"><span></span><span></span><span></span></div></section><section class="detail-section"><h2>Shared files</h2><div class="shared-file"><span class="file-icon">PDF</span><div><strong>Conversation prompts.pdf</strong><span>Shared yesterday · 1.2 MB</span></div></div><div class="shared-file"><span class="file-icon">DOC</span><div><strong>Weekend ideas.doc</strong><span>Shared Monday · 90 KB</span></div></div></section><section class="detail-section"><h2>Search messages</h2><label class="details-search">⌕<input id="detail-message-search" type="search" placeholder="Find a message"></label></section>`;
+    const detailsNode = $('#conversation-details');
+    if (!detailsNode || !chat) return;
+    detailsNode.innerHTML = `<div class="detail-avatar ${chat.tone}">${chat.initials}${chat.online ? '<i class="online-dot"></i>' : ''}</div><h1 class="detail-name">${escapeHtml(chat.name)}</h1><p class="detail-status">${chat.online ? 'Online now' : 'Recently active'}</p><div class="detail-actions"><button type="button" data-detail-action="profile">View profile</button></div>`;
   }
 
   function messageMarkup(message) {
     const own = message.sender === 'me';
     const hasMatch = !state.messageSearch || message.body.toLowerCase().includes(state.messageSearch.toLowerCase());
     if (!hasMatch) return '';
-    return `<div class="message-row ${own ? 'own' : ''}" data-message-id="${message.id}"><button class="message-action-trigger" type="button" data-message-menu="${message.id}" aria-label="Message options">⋯</button><div class="message-bubble">${message.reply ? `<div class="message-reply">${escapeHtml(message.reply)}</div>` : ''}${message.image ? `<img class="message-image" src="${message.image}" alt="Shared image">` : ''}${message.body ? `<p>${escapeHtml(message.body)}</p>` : ''}<small class="message-time">${message.time}${own ? `<span class="read-receipt">${message.read ? '✓✓' : '✓'}</span>` : ''}</small></div></div>`;
+    return `<div class="message-row ${own ? 'own' : ''}" data-message-id="${message.id}"><button class="message-action-trigger" type="button" data-message-menu="${message.id}" aria-label="Message options">⋯</button><div class="message-bubble">${message.image ? `<img class="message-image" src="${message.image}" alt="Shared image">` : ''}${message.body ? `<p>${escapeHtml(message.body)}</p>` : ''}<small class="message-time">${message.time}${own ? `<span class="read-receipt">${message.read ? '✓✓' : '✓'}</span>` : ''}</small></div></div>`;
   }
 
   function renderThread() {
+    const threadNode = $('#message-thread');
+    if (!threadNode) return;
     const conversation = messages[state.activeChat] || [];
     let previousDate = '';
     const markup = conversation.map((message) => {
@@ -97,33 +106,31 @@
       previousDate = message.date;
       return separator + messageMarkup(message);
     }).join('');
-    $('#message-thread').innerHTML = markup || '<div class="date-separator">No matching messages</div>';
-    requestAnimationFrame(() => { const thread = $('#message-thread'); thread.scrollTop = thread.scrollHeight; });
-  }
-
-  function renderReplyPreview() {
-    const preview = $('#reply-preview');
-    preview.hidden = !state.replyTo;
-    if (state.replyTo) $('#reply-preview-text').textContent = state.replyTo.body || 'Image';
+    threadNode.innerHTML = markup || '<div class="date-separator">No matching messages</div>';
+    requestAnimationFrame(() => { threadNode.scrollTop = threadNode.scrollHeight; });
   }
 
   function selectChat(id) {
     state.activeChat = id;
     state.messageSearch = '';
-    state.replyTo = null;
-    chats.find((chat) => chat.id === id).unread = 0;
-    $('#message-search-input').value = '';
-    $('#message-search-bar').hidden = true;
-    $('.chat-list-panel').classList.remove('mobile-open');
-    renderChatList(); renderHeader(); renderDetails(); renderThread(); renderReplyPreview();
+    const chat = chats.find((item) => item.id === id);
+    if (chat) chat.unread = 0;
+    const searchInput = $('#message-search-input');
+    if (searchInput) searchInput.value = '';
+    const searchBar = $('#message-search-bar');
+    if (searchBar) searchBar.hidden = true;
+    $('.chat-list-panel')?.classList.remove('mobile-open');
+    renderChatList(); renderHeader(); renderDetails(); renderThread();
   }
 
   function toggleMessageMenu(messageId, trigger) {
     const menu = $('#message-action-menu');
+    if (!menu) return;
     if (!menu.hidden && menu.dataset.messageId === messageId) { menu.hidden = true; return; }
     const message = (messages[state.activeChat] || []).find((item) => item.id === messageId);
+    if (!message) return;
     menu.dataset.messageId = messageId;
-    menu.innerHTML = `<button type="button" data-message-action="reply">Reply</button><button type="button" data-message-action="copy">Copy</button>${message.sender === 'me' ? '<button type="button" data-message-action="delete">Delete</button>' : ''}`;
+    menu.innerHTML = `<button type="button" data-message-action="copy">Copy</button>${message.sender === 'me' ? '<button type="button" data-message-action="delete">Delete</button>' : ''}`;
     const rect = trigger.getBoundingClientRect();
     menu.style.top = `${Math.min(rect.bottom + 4, window.innerHeight - 125)}px`;
     menu.style.left = `${Math.min(rect.left - 82, window.innerWidth - 135)}px`;
@@ -137,11 +144,12 @@
 
   function messageAction(action) {
     const menu = $('#message-action-menu');
+    if (!menu) return;
     const conversation = messages[state.activeChat];
+    if (!conversation) return;
     const index = conversation.findIndex((message) => message.id === menu.dataset.messageId);
     const message = conversation[index];
     if (!message) return;
-    if (action === 'reply') { state.replyTo = message; renderReplyPreview(); $('#message-input').focus(); }
     if (action === 'copy') copyMessage(message);
     if (action === 'delete') { conversation.splice(index, 1); renderThread(); showToast('Message removed from this local preview.'); }
     menu.hidden = true;
@@ -151,53 +159,55 @@
 
   function sendMessage() {
     const input = $('#message-input');
+    if (!input) return;
     const body = input.value.trim();
     if (!body && !state.imageUrl) return;
     const now = new Date();
-    const message = { id: `local-${Date.now()}`, sender: 'me', date: 'Today', time: now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), body, image: state.imageUrl, read: false, reply: state.replyTo?.body || '' };
+    const message = { id: `local-${Date.now()}`, sender: 'me', date: 'Today', time: now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), body, image: state.imageUrl, read: false };
+    if (!messages[state.activeChat]) messages[state.activeChat] = [];
     messages[state.activeChat].push(message);
     const chat = getChat();
-    chat.preview = body || 'Shared an image';
-    chat.time = 'Now';
-    state.replyTo = null; state.imageUrl = '';
+    if (chat) {
+      chat.preview = body || 'Shared an image';
+      chat.time = 'Now';
+    }
+    state.imageUrl = '';
     input.value = ''; autoGrow(input);
-    $('#image-preview').hidden = true;
-    renderChatList(); renderThread(); renderReplyPreview();
-    state.typing = false; $('#typing-indicator').hidden = true;
+    const imgPrev = $('#image-preview');
+    if (imgPrev) imgPrev.hidden = true;
+    renderChatList(); renderThread();
     setTimeout(() => { message.read = true; renderThread(); }, 850);
   }
 
   function handleImage(file) {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => { state.imageUrl = reader.result; $('#image-preview-image').src = reader.result; $('#image-preview').hidden = false; };
+    reader.onload = () => { state.imageUrl = reader.result; const img = $('#image-preview-image'); if (img) img.src = reader.result; const prev = $('#image-preview'); if (prev) prev.hidden = false; };
     reader.readAsDataURL(file);
   }
 
   function initialiseEvents() {
-    $('#chat-list').addEventListener('click', (event) => { const row = event.target.closest('[data-chat-id]'); if (row) selectChat(row.dataset.chatId); });
-    $('#chat-search-input').addEventListener('input', (event) => { state.search = event.target.value; renderChatList(); });
+    $('#chat-list')?.addEventListener('click', (event) => { const row = event.target.closest('[data-chat-id]'); if (row) selectChat(row.dataset.chatId); });
+    $('#chat-search-input')?.addEventListener('input', (event) => { state.search = event.target.value; renderChatList(); });
     $$('.chat-filter').forEach((button) => button.addEventListener('click', () => { state.filter = button.dataset.chatFilter; $$('.chat-filter').forEach((item) => { item.classList.toggle('active', item === button); item.setAttribute('aria-selected', String(item === button)); }); renderChatList(); }));
-    $('#message-composer').addEventListener('submit', (event) => { event.preventDefault(); sendMessage(); });
-    $('#message-input').addEventListener('input', (event) => autoGrow(event.target));
-    $('#message-thread').addEventListener('click', (event) => { const trigger = event.target.closest('[data-message-menu]'); if (trigger) toggleMessageMenu(trigger.dataset.messageMenu, trigger); });
-    $('#message-action-menu').addEventListener('click', (event) => { const action = event.target.closest('[data-message-action]'); if (action) messageAction(action.dataset.messageAction); });
-    $('#cancel-reply').addEventListener('click', () => { state.replyTo = null; renderReplyPreview(); });
-    $('#attachment-button').addEventListener('click', () => showToast('Choose an image using the photo button.'));
-    $('#image-button').addEventListener('click', () => $('#image-upload-input').click());
-    $('#image-upload-input').addEventListener('change', (event) => handleImage(event.target.files[0]));
-    $('#remove-image-preview').addEventListener('click', () => { state.imageUrl = ''; $('#image-preview').hidden = true; $('#image-upload-input').value = ''; });
-    $('#emoji-toggle').addEventListener('click', () => { $('#emoji-picker').hidden = !$('#emoji-picker').hidden; });
-    $('#emoji-picker').addEventListener('click', (event) => { if (event.target.tagName !== 'BUTTON') return; const input = $('#message-input'); input.value += event.target.textContent; autoGrow(input); input.focus(); $('#emoji-picker').hidden = true; });
-    $('#voice-button').addEventListener('click', (event) => { event.currentTarget.classList.toggle('recording'); showToast(event.currentTarget.classList.contains('recording') ? 'Voice recording placeholder started.' : 'Voice recording placeholder stopped.'); });
-    $('#chat-header').addEventListener('click', (event) => { const action = event.target.closest('[data-header-action]'); if (!action) { if (event.target.closest('#chat-mobile-list-toggle')) $('.chat-list-panel').classList.add('mobile-open'); return; } if (action.dataset.headerAction === 'search') { $('#message-search-bar').hidden = false; $('#message-search-input').focus(); } else showToast('This conversation action is ready for future integration.'); });
-    $('#close-message-search').addEventListener('click', () => { state.messageSearch = ''; $('#message-search-input').value = ''; $('#message-search-bar').hidden = true; renderThread(); });
-    $('#message-search-input').addEventListener('input', (event) => { state.messageSearch = event.target.value; renderThread(); });
-    $('#conversation-details').addEventListener('input', (event) => { if (event.target.id === 'detail-message-search') { state.messageSearch = event.target.value; renderThread(); } });
-    $('#conversation-details').addEventListener('click', (event) => { const button = event.target.closest('[data-detail-action]'); if (!button) return; if (button.dataset.detailAction === 'favorite') { const chat = getChat(); chat.favorite = !chat.favorite; renderChatList(); renderDetails(); } else if (button.dataset.detailAction === 'profile') window.location.href = 'dashboard.html'; else showToast('This panel is ready for connected conversation data.'); });
-    $('#messages-mobile-menu').addEventListener('click', () => { const sidebar = $('#messages-sidebar'); const isOpen = sidebar.classList.toggle('open'); $('#messages-mobile-menu').setAttribute('aria-expanded', String(isOpen)); });
-    document.addEventListener('click', (event) => { if (!event.target.closest('#message-action-menu') && !event.target.closest('[data-message-menu]')) $('#message-action-menu').hidden = true; });
-    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { $('#message-action-menu').hidden = true; $('#emoji-picker').hidden = true; } });
+    $('#message-composer')?.addEventListener('submit', (event) => { event.preventDefault(); sendMessage(); });
+    $('#message-input')?.addEventListener('input', (event) => autoGrow(event.target));
+    $('#message-thread')?.addEventListener('click', (event) => { const trigger = event.target.closest('[data-message-menu]'); if (trigger) toggleMessageMenu(trigger.dataset.messageMenu, trigger); });
+    $('#message-action-menu')?.addEventListener('click', (event) => { const action = event.target.closest('[data-message-action]'); if (action) messageAction(action.dataset.messageAction); });
+    $('#attachment-button')?.addEventListener('click', () => $('#image-upload-input')?.click());
+    $('#image-upload-input')?.addEventListener('change', (event) => handleImage(event.target.files[0]));
+    $('#remove-image-preview')?.addEventListener('click', () => { state.imageUrl = ''; const prev = $('#image-preview'); if (prev) prev.hidden = true; const inp = $('#image-upload-input'); if (inp) inp.value = ''; });
+    $('#emoji-toggle')?.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); const picker = $('#emoji-picker'); if (picker) picker.hidden = !picker.hidden; });
+    $('#emoji-picker')?.addEventListener('click', (event) => { const btn = event.target.closest('button'); if (!btn) return; const input = $('#message-input'); if (input) { input.value += btn.textContent; autoGrow(input); input.focus(); } const picker = $('#emoji-picker'); if (picker) picker.hidden = true; });
+    $('#chat-header')?.addEventListener('click', (event) => { const action = event.target.closest('[data-header-action]'); if (!action) { if (event.target.closest('#chat-mobile-list-toggle')) $('.chat-list-panel')?.classList.add('mobile-open'); return; } if (action.dataset.headerAction === 'search') { const searchBar = $('#message-search-bar'); if (searchBar) searchBar.hidden = false; $('#message-search-input')?.focus(); } });
+    $('#close-message-search')?.addEventListener('click', () => { state.messageSearch = ''; const inp = $('#message-search-input'); if (inp) inp.value = ''; const searchBar = $('#message-search-bar'); if (searchBar) searchBar.hidden = true; renderThread(); });
+    $('#message-search-input')?.addEventListener('input', (event) => { state.messageSearch = event.target.value; renderThread(); });
+    $('#messages-mobile-menu')?.addEventListener('click', () => { const sidebar = $('#messages-sidebar'); const isOpen = sidebar?.classList.toggle('open'); $('#messages-mobile-menu')?.setAttribute('aria-expanded', String(isOpen)); });
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('#message-action-menu') && !event.target.closest('[data-message-menu]')) { const menu = $('#message-action-menu'); if (menu) menu.hidden = true; }
+      if (!event.target.closest('.emoji-picker-wrap')) { const picker = $('#emoji-picker'); if (picker) picker.hidden = true; }
+    });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { const menu = $('#message-action-menu'); if (menu) menu.hidden = true; const picker = $('#emoji-picker'); if (picker) picker.hidden = true; } });
   }
 
   /* Future Supabase Realtime integration contract — intentionally not subscribed yet. */

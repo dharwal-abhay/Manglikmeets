@@ -8,6 +8,8 @@
   const fail = (error, context) => { const message = error?.message || 'Something went wrong.'; console.error(`[Manglik Meets] ${context}`, error); return new Error(message); };
   const requireUser = async () => { if (noClient()) throw noClient(); const { data, error } = await client.auth.getUser(); if (error) throw fail(error, 'session'); if (!data.user) throw new Error('Please sign in to continue.'); return data.user; };
   const run = async (request, context) => { const { data, error } = await request; if (error) throw fail(error, context); return data; };
+  /* Derive the base URL at runtime so redirects work on any deployment (GitHub Pages, Netlify, etc.) without hardcoding. */
+  const baseUrl = () => `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}`;
   const array = (value) => Array.isArray(value) ? value : String(value || '').split(',').map((v) => v.trim()).filter(Boolean);
   const toDbProfile = (state) => {
     const payload = {
@@ -384,15 +386,15 @@
   };
   const authApi = {
     async emailSignIn(email, password) { return run(client.auth.signInWithPassword({ email, password }), 'sign in'); },
-    async emailSignUp({ email, password, fullName, username }) { return run(client.auth.signUp({ email, password, options: { data: { full_name: fullName, username }, emailRedirectTo: `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}` } }), 'create account'); },
+    async emailSignUp({ email, password, fullName, username }) { return run(client.auth.signUp({ email, password, options: { data: { full_name: fullName, username }, emailRedirectTo: baseUrl() } }), 'create account'); },
     async phoneOtp(phone) { return run(client.auth.signInWithOtp({ phone, options: { shouldCreateUser: false } }), 'send phone OTP'); },
     async verifyPhoneOtp(phone, token) { return run(client.auth.verifyOtp({ phone, token, type: 'sms' }), 'verify phone OTP'); },
     async updatePhone(phone) { return run(client.auth.updateUser({ phone }), 'send phone verification'); },
     async verifyPhoneChange(phone, token) { return run(client.auth.verifyOtp({ phone, token, type: 'phone_change' }), 'verify phone change'); },
-    async googleSignIn() { return run(client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}dashboard.html` } }), 'start Google login'); },
-    async resetPassword(email) { return run(client.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}` }), 'send password reset'); },
+    async googleSignIn() { return run(client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${baseUrl()}dashboard.html` } }), 'start Google login'); },
+    async resetPassword(email) { return run(client.auth.resetPasswordForEmail(email, { redirectTo: baseUrl() }), 'send password reset'); },
     async updatePassword(password) { return run(client.auth.updateUser({ password }), 'update password'); },
-    async resendEmailVerification(email) { return run(client.auth.resend({ type: 'signup', email, options: { emailRedirectTo: `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}` } }), 'resend verification'); },
+    async resendEmailVerification(email) { return run(client.auth.resend({ type: 'signup', email, options: { emailRedirectTo: baseUrl() } }), 'resend verification'); },
     async signOut(scope = 'global') { return run(client.auth.signOut({ scope }), 'sign out'); },
     async deleteAccount() { const user = await requireUser(); return run(client.from('profiles').delete().eq('id', user.id), 'delete profile'); }
   };

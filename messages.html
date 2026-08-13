@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -30,8 +30,8 @@
           <a class="nav-item" href="index.html"><span>⌂</span>Home</a>
           <a class="nav-item" href="discover.html"><span>◎</span>Discover</a>
           <a class="nav-item" href="feed.html"><span>◫</span>Community</a>
-          <a class="nav-item" href="matches.html"><span>♡</span>Matches <b class="nav-count">12</b></a>
-          <a class="nav-item active" href="messages.html"><span>◒</span>Messages <b class="nav-count rose">3</b></a>
+          <a class="nav-item" href="matches.html"><span>♡</span>Matches</a>
+          <a class="nav-item active" href="messages.html"><span>◒</span>Messages</a>
           <a class="nav-item" href="notifications.html"><span>♧</span>Notifications <b class="nav-count rose" data-notification-badge>5</b></a>
           <button class="nav-item" type="button" data-future-action="saved"><span>⌑</span>Saved</button>
           <a class="nav-item" href="dashboard.html"><span>◉</span>Profile</a>
@@ -57,10 +57,21 @@
               <header class="chat-header" id="chat-header"></header>
               <div class="message-search-bar" id="message-search-bar" hidden><label for="message-search-input">⌕ <input id="message-search-input" type="search" placeholder="Search in this conversation"></label><button id="close-message-search" type="button" aria-label="Close message search">×</button></div>
               <div class="message-thread" id="message-thread" data-supabase-table="messages" aria-live="polite"></div>
-              <div class="typing-indicator" id="typing-indicator"><span></span><span></span><span></span><em id="typing-name">Rohan is typing</em></div>
-              <div class="reply-preview" id="reply-preview" hidden><div><span>Replying to</span><strong id="reply-preview-text"></strong></div><button id="cancel-reply" type="button" aria-label="Cancel reply">×</button></div>
               <div class="image-preview" id="image-preview" hidden><img id="image-preview-image" alt="Selected image preview"><button id="remove-image-preview" type="button" aria-label="Remove image">×</button></div>
-              <form class="message-composer" id="message-composer" data-supabase-action="insert-message"><input id="image-upload-input" type="file" accept="image/*" hidden><button class="composer-icon" id="attachment-button" type="button" aria-label="Add attachment">⌇</button><button class="composer-icon" id="image-button" type="button" aria-label="Choose image">▣</button><div class="emoji-picker-wrap"><button class="composer-icon" id="emoji-toggle" type="button" aria-label="Choose emoji">☺</button><div class="emoji-picker" id="emoji-picker" hidden><button type="button">✨</button><button type="button">😊</button><button type="button">🙏</button><button type="button">🌷</button><button type="button">💛</button><button type="button">☕</button></div></div><textarea id="message-input" rows="1" maxlength="1000" placeholder="Write a thoughtful message..."></textarea><button class="voice-button" id="voice-button" type="button" aria-label="Record voice message">◉</button><button class="send-button" type="submit" aria-label="Send message">➤</button></form>
+              <form class="message-composer" id="message-composer" data-supabase-action="insert-message">
+                <input id="image-upload-input" type="file" accept="image/*" hidden>
+                <button class="composer-icon" id="attachment-button" type="button" aria-label="Add attachment" title="Add attachment">📎</button>
+                <div class="emoji-picker-wrap">
+                  <button class="composer-icon" id="emoji-toggle" type="button" aria-label="Choose emoji" title="Choose emoji">😊</button>
+                  <div class="emoji-picker" id="emoji-picker" hidden>
+                    <button type="button">✨</button><button type="button">😊</button><button type="button">🙏</button>
+                    <button type="button">🌷</button><button type="button">💛</button><button type="button">☕</button>
+                    <button type="button">❤️</button><button type="button">👍</button><button type="button">🎉</button>
+                  </div>
+                </div>
+                <textarea id="message-input" rows="1" maxlength="1000" placeholder="Type a message..."></textarea>
+                <button class="send-button" type="submit" aria-label="Send message">➤</button>
+              </form>
             </section>
 
             <aside class="conversation-details" id="conversation-details" aria-label="Conversation details"></aside>

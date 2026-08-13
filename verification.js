@@ -43,7 +43,8 @@
     const user = window.ManglikAuth?.getUser();
     const client = window.ManglikAuth?.client;
     if (!requiresVerification() || !user?.email || !client) return { skipped: true };
-    const { error } = await client.auth.resend({ type: 'signup', email: user.email, options: { emailRedirectTo: `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}` } });
+    const base = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}`;
+    const { error } = await client.auth.resend({ type: 'signup', email: user.email, options: { emailRedirectTo: base } });
     return { error };
   };
 

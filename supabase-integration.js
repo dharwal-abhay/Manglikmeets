@@ -729,14 +729,14 @@
       renderConversations();
     });
 
-    /* Image upload attachment controls */
-    const imageBtn = $('#image-button');
+    /* Attachment button & file selection */
+    const attachmentBtn = $('#attachment-button, #image-button');
     const imageInput = $('#image-upload-input');
     const imagePreview = $('#image-preview');
     const previewImg = $('#image-preview-image');
     const removePreviewBtn = $('#remove-image-preview');
 
-    imageBtn?.addEventListener('click', () => imageInput?.click());
+    attachmentBtn?.addEventListener('click', () => imageInput?.click());
 
     imageInput?.addEventListener('change', (event) => {
       const file = event.target.files?.[0];
@@ -764,6 +764,41 @@
       selectedImageFile = null;
       if (imageInput) imageInput.value = '';
       if (imagePreview) imagePreview.hidden = true;
+    });
+
+    /* Emoji picker toggle & insertion */
+    const emojiToggle = $('#emoji-toggle');
+    const emojiPicker = $('#emoji-picker');
+    const messageInput = $('#message-input');
+
+    emojiToggle?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (emojiPicker) emojiPicker.hidden = !emojiPicker.hidden;
+    });
+
+    emojiPicker?.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      if (messageInput) {
+        messageInput.value += btn.textContent;
+        messageInput.focus();
+      }
+      if (emojiPicker) emojiPicker.hidden = true;
+    });
+
+    document.addEventListener('click', (e) => {
+      if (emojiPicker && !emojiPicker.hidden && !e.target.closest('.emoji-picker-wrap')) {
+        emojiPicker.hidden = true;
+      }
+    });
+
+    /* Enter key to send (Shift+Enter for newline) */
+    messageInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        $('#message-composer')?.requestSubmit();
+      }
     });
 
     /* Form submit: Send text or image message */
@@ -803,6 +838,7 @@
         selectedImageFile = null;
         if (imageInput) imageInput.value = '';
         if (imagePreview) imagePreview.hidden = true;
+        if (emojiPicker) emojiPicker.hidden = true;
 
         await renderThread();
         await renderConversations();
