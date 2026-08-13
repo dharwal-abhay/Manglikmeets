@@ -86,13 +86,34 @@
     }, true);
   }
 
-  function currentFilters() { const data = {}; document.querySelectorAll('[data-filter]').forEach((input) => { if (input.type === 'checkbox') { if (input.checked) data[input.dataset.filter] = true; } else if (input.value && !/^any /i.test(input.value)) data[input.dataset.filter] = input.value; }); return data; }
+  function currentFilters() {
+    const data = {};
+    document.querySelectorAll('[data-filter]').forEach((input) => {
+      if (input.type === 'checkbox') {
+        if (input.checked) data[input.dataset.filter] = true;
+      } else if (input.value && !/^any /i.test(input.value)) {
+        data[input.dataset.filter] = input.value;
+      }
+    });
+    if (data.ageMin === '25') delete data.ageMin;
+    if (data.ageMax === '35') delete data.ageMax;
+    return data;
+  }
+
   async function liveDiscover(event) {
     event?.preventDefault(); event?.stopImmediatePropagation();
-    const input = $('#discover-search-input, #member-search-input'); const grid = $('[data-member-grid="recommended"]'); if (!grid) return;
-    grid.setAttribute('aria-busy', 'true'); grid.innerHTML = '<div class="empty-members">Searching the community…</div>';
+    const input = $('#discover-search-input, #member-search-input');
+    const recommendedGrid = $('[data-member-grid="recommended"]');
+    const compatibleGrid = $('[data-member-grid="compatible"]');
+    const nearbyList = $('[data-member-list="nearby"]');
+    const newList = $('[data-member-list="new"]');
+
+    if (!recommendedGrid) return;
+    recommendedGrid.setAttribute('aria-busy', 'true');
+    recommendedGrid.innerHTML = '<div class="empty-members">Searching the community…</div>';
+
     try {
-      const result = await api.profile.search({ query: input?.value || '', filters: currentFilters() });
+      const result = await api.profile.search({ query: input?.value || '', filters: currentFilters(), limit: 100 });
       const cardsData = await Promise.all(result.map(async (person) => {
         let avatar_url = person.avatar_url;
         if (avatar_url && !avatar_url.startsWith('http') && !avatar_url.startsWith('data:')) {
@@ -100,10 +121,28 @@
         }
         return { ...person, avatar_url };
       }));
-      grid.innerHTML = cardsData.length ? cardsData.map(profileCard).join('') : '<div class="empty-members">No members match those details yet. Try widening your search or filters.</div>';
+
+      const html = cardsData.length ? cardsData.map(profileCard).join('') : '<div class="empty-members">No members match those details yet. Try widening your search or filters.</div>';
+      recommendedGrid.innerHTML = html;
+
+      if (compatibleGrid) {
+        compatibleGrid.innerHTML = cardsData.length > 1 ? cardsData.slice().reverse().map(profileCard).join('') : html;
+      }
+      if (nearbyList) {
+        nearbyList.innerHTML = cardsData.slice(0, 5).map(profileCard).join('');
+      }
+      if (newList) {
+        newList.innerHTML = cardsData.slice(0, 5).map(profileCard).join('');
+      }
+
       $('#recommended-heading').textContent = input?.value ? `Results for “${input.value}”` : 'Recommended matches';
       $('#recommended-subtitle').textContent = `${cardsData.length} live member${cardsData.length === 1 ? '' : 's'} found.`;
-    } catch (error) { grid.innerHTML = '<div class="empty-members">We could not load members right now. Please try again.</div>'; toast(`Search failed: ${error.message}`); } finally { grid.removeAttribute('aria-busy'); }
+    } catch (error) {
+      recommendedGrid.innerHTML = '<div class="empty-members">We could not load members right now. Please try again.</div>';
+      toast(`Search failed: ${error.message}`);
+    } finally {
+      recommendedGrid.removeAttribute('aria-busy');
+    }
   }
   function bindDiscover() {
     if (!$('#discover-search-form')) return;
