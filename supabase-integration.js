@@ -280,26 +280,172 @@
   async function bindMatches() {
     const grid = $('#match-grid');
     if (!grid) return;
+
+    const resolveAvatar = async (profile) => {
+      if (!profile) return profile;
+      let url = profile.avatar_url;
+      if (url && !url.startsWith('http') && !url.startsWith('data:')) {
+        url = await api.storage.signedUrl('profile-images', url);
+      }
+      return { ...profile, avatar_url: url || '' };
+    };
+
+    const matchCard = (profile, options = {}) => {
+      const initials = escape((profile.full_name || '?').split(' ').map((x) => x[0]).join('').slice(0, 2));
+      const hasAvatar = !!profile.avatar_url;
+      const visualStyle = hasAvatar
+        ? ` style="background-image:linear-gradient(rgba(52,35,27,.08),rgba(52,35,27,.3)),url('${escape(profile.avatar_url)}');background-size:cover;background-position:center"`
+        : '';
+      const unmatchBtn = options.showUnmatch
+        ? `<button class="match-action" type="button" data-match-action="unmatch" data-person-id="${profile.id}" aria-label="Unmatch ${escape(profile.full_name)}">✕ Unmatch</button>`
+        : `<button class="match-action" type="button" data-match-action="pass" data-person-id="${profile.id}" aria-label="Pass ${escape(profile.full_name)}">×</button>`;
+
+      return `<article class="match-card" data-match-card="${profile.id}">
+        <div class="match-visual ${hasAvatar ? 'has-image' : 'tone-saffron'}"${visualStyle}>
+          <span class="match-online">${profile.is_online ? '<i></i>Online' : 'Recently active'}</span>
+          <span class="match-initials">${initials}</span>
+        </div>
+        <div class="match-card-body">
+          <div class="match-name"><h3>${escape(profile.full_name || 'Member')}, ${age(profile.date_of_birth) || '—'}</h3>${profile.is_verified ? '<span class="match-verified">✓</span>' : ''}</div>
+          <p class="match-meta">${escape(profile.city || 'Location not shared')} · ${escape(profile.profession || 'Member')}</p>
+          <div class="compatibility-row">
+            ${(profile.interests || []).slice(0, 2).map((v) => `<span>${escape(v)}</span>`).join('')}
+            <span>${escape(profile.religion || '')}</span>
+          </div>
+          <div class="match-widget">
+            <div><small>Manglik status</small><strong>${escape(profile.manglik_status || '—')}</strong></div>
+            <div><small>Education</small><strong>${escape(profile.education || '—')}</strong></div>
+          </div>
+        </div>
+        <div class="match-actions">
+          <button class="match-action primary" type="button" data-match-action="view" data-person-id="${profile.id}">View</button>
+          <button class="match-action" type="button" data-match-action="like" data-person-id="${profile.id}">♡</button>
+          ${unmatchBtn}
+          <button class="match-action" type="button" data-match-action="save" data-person-id="${profile.id}">⌑</button>
+          <button class="match-action" type="button" data-match-action="message" data-person-id="${profile.id}">✉</button>
+        </div>
+      </article>`;
+    };
+
     const render = async () => {
       grid.setAttribute('aria-busy', 'true');
+      grid.innerHTML = '<div style="padding:40px;text-align:center;color:#666">Loading matches…</div>';
       try {
         const user = await api.requireUser();
-        const rows = await api.social.matches();
-        const view = (window.location.hash || '#suggested').slice(1);
-        const selected = rows.filter((row) => view !== 'favorites' && (row.status === view || (view === 'pending' && row.status === 'pending') || (view === 'mutual' && row.status === 'mutual') || (view === 'suggested' && row.status === 'suggested')));
-        const items = view === 'favorites'
-          ? (await api.social.saved()).map((item) => ({ row: { compatibility_score: null, shared_interests: [], shared_values: [], distance_km: null }, profile: item.profiles })).filter((item) => item.profile)
-          : selected.map((row) => ({ row, profile: row.user_one_id === user.id ? row.user_two : row.user_one })).filter((item) => item.profile);
-        grid.innerHTML = items.map(({ row, profile }) => `<article class="match-card" data-match-card="${profile.id}"><div class="match-visual tone-saffron"><span class="match-online">${profile.is_online ? 'Online' : 'Recently active'}</span><span class="match-score">${row.compatibility_score || '—'}%</span><span class="match-initials">${escape((profile.full_name || '?').split(' ').map((p) => p[0]).join('').slice(0,2))}</span></div><div class="match-card-body"><div class="match-name"><h3>${escape(profile.full_name)}, ${age(profile.date_of_birth) || '—'}</h3>${profile.is_verified ? '<span class="match-verified">✓</span>' : ''}</div><p class="match-meta">${escape(profile.city || 'Location not shared')} · ${escape(profile.profession || 'Member')}</p><div class="compatibility-row">${(row.shared_interests || []).slice(0,2).map((value) => `<span>${escape(value)}</span>`).join('')}<span>${escape(row.distance_km ? `${row.distance_km} km away` : 'Distance not shared')}</span></div><div class="match-widget"><div><small>Shared interests</small><strong>${escape((row.shared_interests || []).join(', ') || 'Discover together')}</strong></div><div><small>Shared values</small><strong>${escape((row.shared_values || []).join(', ') || 'Thoughtful match')}</strong></div></div></div><div class="match-actions"><button class="match-action primary" type="button" data-match-action="view" data-person-id="${profile.id}">View</button><button class="match-action" type="button" data-match-action="like" data-person-id="${profile.id}">♡</button><button class="match-action" type="button" data-match-action="pass" data-person-id="${profile.id}">×</button><button class="match-action" type="button" data-match-action="save" data-person-id="${profile.id}">⌑</button><button class="match-action" type="button" data-match-action="message" data-person-id="${profile.id}">✉</button></div></article>`).join('');
+        const view = (window.location.hash || '#mutual').slice(1) || 'mutual';
+
+        /* Fetch mutual matches */
+        const mutualRows = await api.social.matches();
+
+        /* Fetch pending likes (people who liked me but I haven't liked back) */
+        let pendingRows = [];
+        try { pendingRows = await api.social.pendingLikes(); } catch (e) { console.warn('Pending likes unavailable:', e.message); }
+
+        /* Fetch suggested profiles (everyone not already matched or pending) */
+        let suggestedProfiles = [];
+        try {
+          const allProfiles = await api.profile.search({ limit: 50 });
+          const matchedIds = new Set(mutualRows.map((r) => r.user_one_id === user.id ? r.user_two_id : r.user_one_id));
+          const pendingIds = new Set(pendingRows.map((r) => r.user_one_id || r.user_id));
+          suggestedProfiles = (allProfiles || []).filter((p) => p.id !== user.id && !matchedIds.has(p.id) && !pendingIds.has(p.id));
+        } catch (e) { console.warn('Suggested profiles unavailable:', e.message); }
+
+        /* Resolve avatars for all profile sets */
+        const resolveAll = async (rows, getProfile) => {
+          return Promise.all(rows.map(async (row) => {
+            const profile = getProfile(row, user);
+            if (!profile) return null;
+            return resolveAvatar(profile);
+          }));
+        };
+
+        const mutualProfiles = (await resolveAll(mutualRows, (row, u) =>
+          row._other || (row.user_one_id === u.id ? (row.user_two || row.matched_user) : (row.user_one || row.user))
+        )).filter(Boolean);
+
+        const pendingProfiles = (await resolveAll(pendingRows, (row) =>
+          row.user_one || row.matched_user
+        )).filter(Boolean);
+
+        const suggested = await Promise.all(suggestedProfiles.slice(0, 20).map(resolveAvatar));
+
+        /* Update counts */
+        const suggestedCount = suggested.length;
+        const pendingCount = pendingProfiles.length;
+        const mutualCount = mutualProfiles.length;
+        $('#suggested-count').textContent = suggestedCount;
+        $('#pending-count').textContent = pendingCount;
+        $('#mutual-count').textContent = mutualCount;
+        $('#pending-tab-count').textContent = pendingCount;
+
+        /* Render the active view */
+        let items = [];
+        let showUnmatch = false;
+        if (view === 'mutual') {
+          items = mutualProfiles;
+          showUnmatch = true;
+        } else if (view === 'pending') {
+          items = pendingProfiles;
+        } else if (view === 'suggested') {
+          items = suggested;
+        } else if (view === 'favorites') {
+          try {
+            const savedRows = await api.social.saved();
+            items = await Promise.all((savedRows || []).map(async (row) => {
+              if (!row.profiles) return null;
+              return resolveAvatar(row.profiles);
+            }));
+            items = items.filter(Boolean);
+          } catch (e) { console.warn('Favorites unavailable:', e.message); }
+        } else if (view === 'viewed') {
+          items = []; /* Recently viewed is client-side only; show empty */
+        } else {
+          items = suggested;
+        }
+
+        grid.innerHTML = items.length
+          ? items.map((profile) => matchCard(profile, { showUnmatch })).join('')
+          : '';
         $('#matches-empty').hidden = items.length !== 0;
-        $('#suggested-count').textContent = rows.filter((row) => row.status === 'suggested').length;
-        $('#pending-count').textContent = rows.filter((row) => row.status === 'pending').length;
-        $('#mutual-count').textContent = rows.filter((row) => row.status === 'mutual').length;
-      } catch (error) { $('#matches-empty').hidden = false; toast(`Matches could not load: ${error.message}`); } finally { grid.removeAttribute('aria-busy'); }
+      } catch (error) {
+        grid.innerHTML = '';
+        $('#matches-empty').hidden = false;
+        toast(`Matches could not load: ${error.message}`);
+      } finally {
+        grid.removeAttribute('aria-busy');
+      }
     };
+
     await render();
-    api.client.channel('live-matches').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, render).subscribe();
-    document.querySelectorAll('.match-tab').forEach((tab) => tab.addEventListener('click', () => { window.location.hash = tab.dataset.matchView; document.querySelectorAll('.match-tab').forEach((item) => item.classList.toggle('active', item === tab)); setTimeout(render, 0); }));
+
+    /* Listen for realtime changes to matches table */
+    try {
+      api.client.channel('live-matches').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, render).subscribe();
+    } catch (e) { console.warn('Realtime subscription not available:', e.message); }
+
+    /* Tab switching */
+    document.querySelectorAll('.match-tab').forEach((tab) => tab.addEventListener('click', () => {
+      window.location.hash = tab.dataset.matchView;
+      document.querySelectorAll('.match-tab').forEach((item) => item.classList.toggle('active', item === tab));
+      setTimeout(render, 0);
+    }));
+
+    /* Handle unmatch action */
+    grid.addEventListener('click', async (event) => {
+      const unmatchBtn = event.target.closest('[data-match-action="unmatch"]');
+      if (!unmatchBtn) return;
+      const profileId = unmatchBtn.dataset.personId;
+      if (!profileId || !isUuid(profileId)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      try {
+        await busy(unmatchBtn, async () => {
+          await api.social.unmatch(profileId);
+          toast('You have been unmatched.');
+          await render();
+        });
+      } catch (error) { toast(`Could not unmatch: ${error.message}`); }
+    });
   }
 
   async function bindNotifications() {

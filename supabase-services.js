@@ -72,11 +72,138 @@
     return { data: rows.slice(0, pageSize), nextFrom: rows.length > pageSize ? from + pageSize : null };
   };
   const social = {
-    async toggle(table, profileId) { const user = await requireUser(); const exists = await run(client.from(table).select('profile_id').eq('user_id', user.id).eq('profile_id', profileId).maybeSingle(), 'check action'); if (exists) { await run(client.from(table).delete().eq('user_id', user.id).eq('profile_id', profileId), 'remove action'); return false; } await run(client.from(table).insert({ user_id: user.id, profile_id: profileId }), 'save action'); return true; },
-    like(id) { return this.toggle('profile_likes', id); }, save(id) { return this.toggle('saved_profiles', id); },
+    async toggle(table, profileId) {
+      const user = await requireUser();
+      if (profileId === user.id) throw new Error('You cannot perform this action on yourself.');
+      const exists = await run(client.from(table).select('profile_id').eq('user_id', user.id).eq('profile_id', profileId).maybeSingle(), 'check action');
+      if (exists) {
+        await run(client.from(table).delete().eq('user_id', user.id).eq('profile_id', profileId), 'remove action');
+        /* If unliking, also remove any mutual match */
+        if (table === 'profile_likes') await this.removeMatch(profileId);
+        return false;
+      }
+      await run(client.from(table).insert({ user_id: user.id, profile_id: profileId }), 'save action');
+      /* Check for mutual like and auto-create match */
+      if (table === 'profile_likes') {
+        try {
+          const { data: mutual } = await client.from('profile_likes').select('user_id').eq('user_id', profileId).eq('profile_id', user.id).maybeSingle();
+          if (mutual) await this.createMatch(user.id, profileId);
+        } catch (e) { console.warn('[Mutual like check]:', e.message); }
+      }
+      return true;
+    },
+    like(id) { return this.toggle('profile_likes', id); },
+    save(id) { return this.toggle('saved_profiles', id); },
+    async createMatch(userId, matchedUserId) {
+      if (userId === matchedUserId) return;
+      try {
+        /* Store canonical pair — smaller UUID first to keep one row per pair. */
+        const [one, two] = userId < matchedUserId ? [userId, matchedUserId] : [matchedUserId, userId];
+        const payload = { user_one_id: one, user_two_id: two, status: 'matched' };
+        await client.from('matches').upsert(payload, { onConflict: 'user_one_id,user_two_id' });
+      } catch (e) { console.warn('[Match creation]:', e.message); }
+    },
+    async removeMatch(profileId) {
+      const user = await requireUser();
+      /* Delete match rows in either direction (stored as canonical pair) */
+      try {
+        await client.from('matches').delete().or(
+          `and(user_one_id.eq.${user.id},user_two_id.eq.${profileId}),and(user_one_id.eq.${profileId},user_two_id.eq.${user.id})`
+        );
+      } catch (e) { console.warn('[Match removal]:', e.message); }
+    },
+    async unmatch(profileId) {
+      const user = await requireUser();
+      /* Remove match rows in both directions */
+      await this.removeMatch(profileId);
+      /* Also remove both sides of the like so they aren't re-matched */
+      try {
+        await client.from('profile_likes').delete().or(
+          `and(user_id.eq.${user.id},profile_id.eq.${profileId}),and(user_id.eq.${profileId},profile_id.eq.${user.id})`
+        );
+      } catch (e) { console.warn('[Like cleanup on unmatch]:', e.message); }
+    },
     async matchAction(profileId, action) { const user = await requireUser(); return run(client.from('match_actions').upsert({ user_id: user.id, profile_id: profileId, action, updated_at: new Date().toISOString() }), 'save match action'); },
     async saved() { const user = await requireUser(); return run(client.from('saved_profiles').select('created_at, profiles!profile_id(*)').eq('user_id', user.id).order('created_at', { ascending: false }), 'load saved profiles'); },
-    async matches() { const user = await requireUser(); return run(client.from('matches').select('*, user_one:profiles!user_one_id(*), user_two:profiles!user_two_id(*)').or(`user_one_id.eq.${user.id},user_two_id.eq.${user.id}`).order('updated_at', { ascending: false }), 'load matches'); }
+    async matches() {
+      const user = await requireUser();
+      let data = null;
+      /* Strategy 1: Query with actual DB columns user_one_id / user_two_id and named FK constraints */
+      try {
+        const res = await client.from('matches')
+          .select('*, user_one:profiles!matches_user_one_id_fkey(*), user_two:profiles!matches_user_two_id_fkey(*)')
+          .or(`user_one_id.eq.${user.id},user_two_id.eq.${user.id}`)
+          .order('created_at', { ascending: false });
+        if (res.error) throw res.error;
+        data = res.data || [];
+      } catch (e1) {
+        console.warn('[Matches query strategy 1]:', e1.message);
+        /* Strategy 2: Try generic column-name hint syntax */
+        try {
+          const res2 = await client.from('matches')
+            .select('*, user_one:profiles!user_one_id(*), user_two:profiles!user_two_id(*)')
+            .or(`user_one_id.eq.${user.id},user_two_id.eq.${user.id}`)
+            .order('created_at', { ascending: false });
+          if (res2.error) throw res2.error;
+          data = res2.data || [];
+        } catch (e2) {
+          console.warn('[Matches query strategy 2]:', e2.message);
+          /* Strategy 3: Fetch match rows without join, then hydrate profiles manually */
+          try {
+            const { data: rawMatches } = await client.from('matches')
+              .select('id, user_one_id, user_two_id, status, created_at')
+              .or(`user_one_id.eq.${user.id},user_two_id.eq.${user.id}`);
+            if (rawMatches?.length) {
+              const otherIds = rawMatches.map((r) => r.user_one_id === user.id ? r.user_two_id : r.user_one_id);
+              const { data: profiles } = await client.from('profiles').select('*').in('id', otherIds);
+              const profileMap = Object.fromEntries((profiles || []).map((p) => [p.id, p]));
+              data = rawMatches.map((r) => {
+                const otherId = r.user_one_id === user.id ? r.user_two_id : r.user_one_id;
+                return { ...r, user_one: profileMap[r.user_one_id] || null, user_two: profileMap[r.user_two_id] || null, _other: profileMap[otherId] || null };
+              });
+            } else {
+              /* Strategy 4: Fall back to computing mutual likes directly */
+              const { data: myLikes } = await client.from('profile_likes').select('profile_id').eq('user_id', user.id);
+              const likedIds = (myLikes || []).map((x) => x.profile_id);
+              if (likedIds.length) {
+                const { data: mutuals } = await client.from('profile_likes').select('user_id').eq('profile_id', user.id).in('user_id', likedIds);
+                const mutualIds = (mutuals || []).map((m) => m.user_id);
+                if (mutualIds.length) {
+                  const { data: matchedProfiles } = await client.from('profiles').select('*').in('id', mutualIds);
+                  data = (matchedProfiles || []).map((prof) => ({
+                    id: prof.id, user_one_id: user.id, user_two_id: prof.id,
+                    status: 'matched', created_at: new Date().toISOString(),
+                    user_one: null, user_two: prof, _other: prof
+                  }));
+                } else { data = []; }
+              } else { data = []; }
+            }
+          } catch (e3) {
+            console.warn('[Matches query strategy 3]:', e3.message);
+            data = [];
+          }
+        }
+      }
+      return data || [];
+    },
+    async pendingLikes() {
+      /* People who liked me but I haven't liked back */
+      const user = await requireUser();
+      try {
+        const { data: likedMe } = await client.from('profile_likes').select('user_id, created_at').eq('profile_id', user.id);
+        const { data: iLiked } = await client.from('profile_likes').select('profile_id').eq('user_id', user.id);
+        const iLikedSet = new Set((iLiked || []).map((x) => x.profile_id));
+        const pendingIds = (likedMe || []).filter((x) => !iLikedSet.has(x.user_id)).map((x) => x.user_id);
+        if (!pendingIds.length) return [];
+        const { data: profiles } = await client.from('profiles').select('*').in('id', pendingIds);
+        return (profiles || []).map((prof) => ({
+          id: prof.id, user_id: prof.id, matched_user_id: null,
+          user_one_id: prof.id, user_two_id: null,
+          status: 'pending', created_at: new Date().toISOString(),
+          user_one: prof, user_two: null, matched_user: null
+        }));
+      } catch (e) { console.warn('[Pending likes]:', e.message); return []; }
+    }
   };
   const chat = {
     async conversations() { const user = await requireUser(); return run(client.from('conversation_members').select('conversation_id, is_favorite, last_read_at, conversations(id, updated_at, conversation_members(user_id, profiles!user_id(full_name, username, avatar_url, is_online)))').eq('user_id', user.id).order('joined_at', { ascending: false }), 'load conversations'); },

@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -30,7 +30,7 @@
           <a class="nav-item" href="index.html"><span>⌂</span>Home</a>
           <a class="nav-item" href="discover.html"><span>◎</span>Discover</a>
           <a class="nav-item" href="feed.html"><span>◫</span>Community</a>
-          <a class="nav-item active" href="matches.html"><span>♡</span>Matches <b class="nav-count">12</b></a>
+          <a class="nav-item active" href="matches.html"><span>♡</span>Matches <b class="nav-count" id="matches-nav-count"></b></a>
           <a class="nav-item" href="messages.html"><span>◒</span>Messages <b class="nav-count rose">3</b></a>
           <a class="nav-item" href="notifications.html"><span>♧</span>Notifications <b class="nav-count rose" data-notification-badge>5</b></a>
           <button class="nav-item" type="button" data-future-action="saved"><span>⌑</span>Saved</button>
@@ -45,7 +45,7 @@
           <section class="matches-intro"><div><p class="eyebrow">A thoughtful shortlist</p><h1>Look for the <span>reasons you fit.</span></h1><p>Compatibility is more than a score — it is the small values, interests and intentions that feel easy together.</p></div><div class="intro-compatibility"><span>Today’s top connection</span><strong>96%</strong><small>Shared values · mutual intent</small></div></section>
           <section class="match-insights"><article><span>Suggested</span><strong id="suggested-count">0</strong><small>Thoughtful new introductions</small></article><article><span>Pending likes</span><strong id="pending-count">0</strong><small>People interested in you</small></article><article><span>Mutual matches</span><strong id="mutual-count">0</strong><small>Ready for a meaningful chat</small></article></section>
           <section class="matches-workspace">
-            <div class="match-tabs" role="tablist" aria-label="Match views"><button class="match-tab active" type="button" role="tab" data-match-view="suggested" aria-selected="true">Suggested Matches</button><button class="match-tab" type="button" role="tab" data-match-view="pending" aria-selected="false">Pending Likes <b id="pending-tab-count">0</b></button><button class="match-tab" type="button" role="tab" data-match-view="mutual" aria-selected="false">Mutual Matches</button><button class="match-tab" type="button" role="tab" data-match-view="favorites" aria-selected="false">Favorites</button><button class="match-tab" type="button" role="tab" data-match-view="viewed" aria-selected="false">Recently Viewed</button></div>
+            <div class="match-tabs" role="tablist" aria-label="Match views"><button class="match-tab" type="button" role="tab" data-match-view="suggested" aria-selected="false">Suggested Matches</button><button class="match-tab" type="button" role="tab" data-match-view="pending" aria-selected="false">Pending Likes <b id="pending-tab-count">0</b></button><button class="match-tab active" type="button" role="tab" data-match-view="mutual" aria-selected="true">Mutual Matches</button><button class="match-tab" type="button" role="tab" data-match-view="favorites" aria-selected="false">Favorites</button><button class="match-tab" type="button" role="tab" data-match-view="viewed" aria-selected="false">Recently Viewed</button></div>
             <div class="match-view-head"><div><p class="eyebrow" id="match-view-eyebrow">Picked for you</p><h2 id="match-view-title">Suggested matches</h2><p id="match-view-copy">Profiles selected for their alignment with what matters to you.</p></div><button class="match-sort" id="match-sort" type="button">Best compatibility ▾</button></div>
             <div class="match-grid" id="match-grid" data-supabase-table="match_suggestions"></div>
             <div class="matches-empty" id="matches-empty" hidden><span>✦</span><h2>No matches here yet</h2><p>Keep your profile current and new meaningful introductions will appear here.</p><a class="primary-button" href="discover.html">Discover members</a></div>
