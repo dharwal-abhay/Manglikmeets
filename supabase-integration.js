@@ -148,10 +148,6 @@
 
     try {
       const filters = currentFilters();
-      if (!filters.gender) {
-        const opp = await getOppositeGender();
-        if (opp) filters.gender = opp;
-      }
       const currentUser = await api.requireUser().catch(() => null);
       let result = await api.profile.search({ query: input?.value || '', filters, limit: 100 });
       if (currentUser) result = result.filter((p) => p.id !== currentUser.id);
@@ -496,16 +492,134 @@
     $('#logout-other-devices')?.addEventListener('click', async () => { try { await api.settings.signOut('others'); toast('Other sessions have been signed out.'); } catch (error) { toast(error.message); } });
   }
 
-  function bindFeed() {
+  async function bindFeed() {
     if (!$('#composer-form')) return;
-    const renderLiveFeed = async () => { const list = $('#feed-list'); list.setAttribute('aria-busy', 'true'); try { const [posts, user] = await Promise.all([api.feed.list(), api.requireUser()]); list.innerHTML = posts.map((post) => `<article class="feed-post" data-post-card="${post.id}"><header class="post-head"><div class="post-avatar avatar-saffron">${escape((post.profiles?.full_name || 'M').split(' ').map((p) => p[0]).join('').slice(0,2))}</div><div class="post-author"><strong>${escape(post.profiles?.full_name || 'Community member')}</strong><span>${new Date(post.created_at).toLocaleString()}</span></div><span class="post-type">${escape(post.post_type || 'Discussion')}</span></header><div class="post-body"><p>${escape(post.body)}</p></div><footer class="post-actions"><button class="post-action ${post.post_reactions?.some((item) => item.user_id === user.id) ? 'active' : ''}" type="button" data-post-action="like" data-post-id="${post.id}"><span>♡</span><em>${post.post_reactions?.length || 0}</em></button><button class="post-action" type="button" data-post-action="share" data-post-id="${post.id}"><span>↗</span></button></footer></article>`).join(''); $('#feed-empty').hidden = posts.length !== 0; } catch (error) { toast(`Community posts could not load: ${error.message}`); } finally { list.removeAttribute('aria-busy'); $('#feed-skeletons').hidden = true; } };
-    setTimeout(renderLiveFeed, 500);
-    $('#open-composer')?.addEventListener('click', () => { $('#composer-modal').classList.add('open'); $('#composer-modal-backdrop').classList.add('open'); });
-    document.querySelectorAll('[data-composer-type]').forEach((button) => button.addEventListener('click', () => { $('#post-body').dataset.postType = button.dataset.composerType; $('#composer-modal').classList.add('open'); $('#composer-modal-backdrop').classList.add('open'); }));
-    $('#composer-close')?.addEventListener('click', () => { $('#composer-modal').classList.remove('open'); $('#composer-modal-backdrop').classList.remove('open'); });
-    $('#composer-modal-backdrop')?.addEventListener('click', () => { $('#composer-modal').classList.remove('open'); $('#composer-modal-backdrop').classList.remove('open'); });
-    $('#composer-form').addEventListener('submit', async (event) => { event.preventDefault(); event.stopImmediatePropagation(); const body = $('#post-body').value.trim(); if (!body) return; try { await api.feed.create({ body, postType: $('#post-body').dataset.postType || 'discussion' }); $('#composer-form').reset(); $('#composer-modal').classList.remove('open'); $('#composer-modal-backdrop').classList.remove('open'); await renderLiveFeed(); toast('Your community update was published.'); } catch (error) { toast(`Post could not be published: ${error.message}`); } }, true);
-    document.addEventListener('click', async (event) => { const button = event.target.closest('[data-post-action="like"]'); if (!button || !isUuid(button.dataset.postId)) return; try { await api.feed.toggleReaction(button.dataset.postId); } catch (error) { toast(error.message); } });
+
+    const currentUser = await api.requireUser().catch(() => null);
+
+    if (currentUser) {
+      try {
+        const myProfile = await api.profile.mine();
+        if (myProfile?.full_name) {
+          const initials = myProfile.full_name.split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase();
+          const avatarNode = $('.composer-avatar');
+          if (avatarNode) avatarNode.textContent = initials;
+        }
+      } catch (e) {}
+    }
+
+    const renderLiveFeed = async () => {
+      const list = $('#feed-list');
+      const skeletons = $('#feed-skeletons');
+      const loadState = $('#feed-load-state');
+
+      if (!list) return;
+
+      try {
+        const posts = await api.feed.list();
+        const cardsHtml = await Promise.all((posts || []).map(async (post) => {
+          const author = post.profiles || {};
+          const name = escape(author.full_name || 'Community Member');
+          const initials = escape((author.full_name || '?').split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase());
+          let avatarUrl = author.avatar_url || '';
+          if (avatarUrl && !avatarUrl.startsWith('http') && !avatarUrl.startsWith('data:')) {
+            avatarUrl = await api.storage.signedUrl('profile-images', avatarUrl);
+          }
+          const isLiked = Array.isArray(post.post_reactions) && currentUser && post.post_reactions.some((r) => r.user_id === currentUser.id);
+          const likeCount = Array.isArray(post.post_reactions) ? post.post_reactions.length : 0;
+          const postDate = new Date(post.created_at || Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          const postType = escape(post.post_type || 'Discussion');
+
+          return `<article class="feed-post" data-post-card="${post.id}">
+            <header class="post-head">
+              <div class="post-avatar ${avatarUrl ? 'has-image' : 'avatar-saffron'}"${avatarUrl ? ` style="background-image:url('${escape(avatarUrl)}');background-size:cover;background-position:center"` : ''}>
+                ${initials}
+              </div>
+              <div class="post-author">
+                <strong>${name}</strong>
+                <span>${postDate}</span>
+              </div>
+              <span class="post-type">${postType}</span>
+            </header>
+            <div class="post-body">
+              <p>${escape(post.body || '')}</p>
+            </div>
+            <footer class="post-actions">
+              <button class="post-action ${isLiked ? 'active' : ''}" type="button" data-post-action="like" data-post-id="${post.id}">
+                <span>♡</span><em>${likeCount}</em>
+              </button>
+              <button class="post-action" type="button" data-post-action="share" data-post-id="${post.id}">
+                <span>↗</span>
+              </button>
+            </footer>
+          </article>`;
+        }));
+
+        list.innerHTML = cardsHtml.length ? cardsHtml.join('') : '';
+        const emptyNode = $('#feed-empty');
+        if (emptyNode) emptyNode.hidden = cardsHtml.length !== 0;
+      } catch (error) {
+        console.warn('Feed load failed:', error.message);
+        const emptyNode = $('#feed-empty');
+        if (emptyNode) emptyNode.hidden = false;
+      } finally {
+        if (skeletons) skeletons.hidden = true;
+        if (loadState) loadState.hidden = true;
+      }
+    };
+
+    await renderLiveFeed();
+
+    $('#open-composer')?.addEventListener('click', () => {
+      $('#composer-modal')?.classList.add('open');
+      $('#composer-modal-backdrop')?.classList.add('open');
+      $('#post-body')?.focus();
+    });
+
+    document.querySelectorAll('[data-composer-type]').forEach((button) => button.addEventListener('click', () => {
+      const postBody = $('#post-body');
+      if (postBody) postBody.dataset.postType = button.dataset.composerType;
+      $('#composer-modal')?.classList.add('open');
+      $('#composer-modal-backdrop')?.classList.add('open');
+      $('#post-body')?.focus();
+    }));
+
+    const closeComposer = () => {
+      $('#composer-modal')?.classList.remove('open');
+      $('#composer-modal-backdrop')?.classList.remove('open');
+    };
+
+    $('#composer-close')?.addEventListener('click', closeComposer);
+    $('#composer-modal-backdrop')?.addEventListener('click', closeComposer);
+
+    $('#composer-form')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const bodyInput = $('#post-body');
+      const body = bodyInput ? bodyInput.value.trim() : '';
+      if (!body) return;
+      try {
+        toast('Publishing update…');
+        await api.feed.create({ body, postType: bodyInput.dataset.postType || 'discussion' });
+        if (bodyInput) bodyInput.value = '';
+        closeComposer();
+        await renderLiveFeed();
+        toast('Your update was published to the community feed.');
+      } catch (error) {
+        toast(`Could not publish post: ${error.message}`);
+      }
+    }, true);
+
+    document.addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-post-action="like"]');
+      if (!button || !isUuid(button.dataset.postId)) return;
+      try {
+        await api.feed.toggleReaction(button.dataset.postId);
+        await renderLiveFeed();
+      } catch (error) {
+        toast(error.message);
+      }
+    });
   }
 
   async function bindMessages() {
