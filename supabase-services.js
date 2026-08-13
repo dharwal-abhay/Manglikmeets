@@ -303,18 +303,34 @@
       const user = await requireUser();
       const text = body || content || null;
       const mType = (mediaUrl || imagePath) ? 'image' : messageType;
+      const media = mediaUrl || imagePath || null;
+
       const payload = {
         conversation_id: conversationId,
         sender_id: user.id,
         body: text,
-        content: text,
         message_type: mType,
-        media_url: mediaUrl || imagePath || null,
-        image_path: imagePath || mediaUrl || null,
-        reply_to_id: replyToId || null
+        media_url: media
       };
+      if (replyToId) payload.reply_to_id = replyToId;
+
       try {
-        return await run(client.from('messages').insert(payload).select().single(), 'send message');
+        const { data, error } = await client.from('messages').insert(payload).select().single();
+        if (error) {
+          if (error.code === 'PGRST204' || error.message?.includes('body')) {
+            const fallbackPayload = {
+              conversation_id: conversationId,
+              sender_id: user.id,
+              content: text,
+              message_type: mType,
+              media_url: media
+            };
+            if (replyToId) fallbackPayload.reply_to_id = replyToId;
+            return await run(client.from('messages').insert(fallbackPayload).select().single(), 'send message');
+          }
+          throw fail(error, 'send message');
+        }
+        return data;
       } catch (err) {
         console.warn('[Message insert error]:', err.message);
         throw err;
