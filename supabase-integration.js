@@ -30,8 +30,19 @@
       if (typeof profileState !== 'undefined') {
         Object.assign(profileState, remote);
         const media = await api.profile.mediaUrls(remote.profile_media || []);
-        profileState.media.avatar = media.find((item) => item.media_type === 'avatar')?.url || '';
-        profileState.media.cover = media.find((item) => item.media_type === 'cover')?.url || '';
+
+        let avatarUrl = '';
+        if (remote.avatar_url) {
+          avatarUrl = await api.storage.signedUrl('profile-images', remote.avatar_url);
+        }
+
+        let coverUrl = '';
+        if (remote.cover_url) {
+          coverUrl = await api.storage.signedUrl('profile-images', remote.cover_url);
+        }
+
+        profileState.media.avatar = avatarUrl || media.find((item) => item.media_type === 'avatar')?.url || '';
+        profileState.media.cover = coverUrl || media.find((item) => item.media_type === 'cover')?.url || '';
         profileState.media.gallery = media.filter((item) => item.media_type === 'gallery').sort((a, b) => a.sort_order - b.sort_order).map((item) => ({ id: item.id, label: item.caption || 'A shared moment', url: item.url, className: '', storage_path: item.storage_path }));
         renderProfile();
       }
@@ -48,7 +59,23 @@
     });
     const upload = (selector, kind) => $(selector)?.addEventListener('change', async (event) => {
       const files = [...(event.target.files || [])]; if (!files.length) return;
-      try { const uploads = await Promise.all(files.map((file, index) => api.profile.upload(file, kind, kind === 'gallery' ? profileState.media.gallery.length + index : 0))); const item = uploads[0]; if (item?.signedUrl) { if (kind === 'avatar') profileState.media.avatar = item.signedUrl; if (kind === 'cover') profileState.media.cover = item.signedUrl; renderProfile(); } toast(`${uploads.length} photo${uploads.length === 1 ? '' : 's'} uploaded securely.`); } catch (error) { toast(`Photo upload failed: ${error.message}`); }
+      try {
+        const uploads = await Promise.all(files.map((file, index) => api.profile.upload(file, kind, kind === 'gallery' ? profileState.media.gallery.length + index : 0)));
+        const item = uploads[0];
+        if (item?.signedUrl) {
+          if (kind === 'avatar') profileState.media.avatar = item.signedUrl;
+          if (kind === 'cover') profileState.media.cover = item.signedUrl;
+        }
+        if (kind === 'gallery') {
+          uploads.forEach((u) => {
+            if (u?.signedUrl && !profileState.media.gallery.some((g) => g.id === u.id || g.storage_path === u.storage_path)) {
+              profileState.media.gallery.push({ id: u.id, label: u.caption || 'A shared moment', url: u.signedUrl, className: '', storage_path: u.storage_path });
+            }
+          });
+        }
+        renderProfile();
+        toast(`${uploads.length} photo${uploads.length === 1 ? '' : 's'} uploaded securely.`);
+      } catch (error) { toast(`Photo upload failed: ${error.message}`); }
     });
     upload('#profile-picture-upload', 'avatar'); upload('#cover-picture-upload', 'cover'); upload('#gallery-picture-upload', 'gallery');
     $('#gallery-manager-list')?.addEventListener('click', (event) => {
@@ -64,7 +91,19 @@
     event?.preventDefault(); event?.stopImmediatePropagation();
     const input = $('#discover-search-input, #member-search-input'); const grid = $('[data-member-grid="recommended"]'); if (!grid) return;
     grid.setAttribute('aria-busy', 'true'); grid.innerHTML = '<div class="empty-members">Searching the community…</div>';
-    try { const result = await api.profile.search({ query: input?.value || '', filters: currentFilters() }); grid.innerHTML = result.length ? result.map(profileCard).join('') : '<div class="empty-members">No members match those details yet. Try widening your search or filters.</div>'; $('#recommended-heading').textContent = input?.value ? `Results for “${input.value}”` : 'Recommended matches'; $('#recommended-subtitle').textContent = `${result.length} live member${result.length === 1 ? '' : 's'} found.`; } catch (error) { grid.innerHTML = '<div class="empty-members">We could not load members right now. Please try again.</div>'; toast(`Search failed: ${error.message}`); } finally { grid.removeAttribute('aria-busy'); }
+    try {
+      const result = await api.profile.search({ query: input?.value || '', filters: currentFilters() });
+      const cardsData = await Promise.all(result.map(async (person) => {
+        let avatar_url = person.avatar_url;
+        if (avatar_url && !avatar_url.startsWith('http') && !avatar_url.startsWith('data:')) {
+          avatar_url = await api.storage.signedUrl('profile-images', avatar_url);
+        }
+        return { ...person, avatar_url };
+      }));
+      grid.innerHTML = cardsData.length ? cardsData.map(profileCard).join('') : '<div class="empty-members">No members match those details yet. Try widening your search or filters.</div>';
+      $('#recommended-heading').textContent = input?.value ? `Results for “${input.value}”` : 'Recommended matches';
+      $('#recommended-subtitle').textContent = `${cardsData.length} live member${cardsData.length === 1 ? '' : 's'} found.`;
+    } catch (error) { grid.innerHTML = '<div class="empty-members">We could not load members right now. Please try again.</div>'; toast(`Search failed: ${error.message}`); } finally { grid.removeAttribute('aria-busy'); }
   }
   function bindDiscover() {
     if (!$('#discover-search-form')) return;
@@ -75,14 +114,95 @@
     liveDiscover();
   }
 
+  async function openMemberDrawer(personId) {
+    const drawer = $('#member-drawer');
+    const backdrop = $('#member-drawer-backdrop');
+    const content = $('#member-drawer-content');
+    if (!drawer || !content) return;
+
+    drawer.classList.add('is-open', 'open');
+    backdrop?.classList.add('is-open', 'open');
+    drawer.setAttribute('aria-hidden', 'false');
+    content.innerHTML = '<div style="padding:40px;text-align:center;color:#666">Loading profile...</div>';
+
+    try {
+      const { data: person } = await api.client.from('profiles').select('*, profile_media(*)').eq('id', personId).single();
+      if (!person) throw new Error('Profile not found.');
+
+      let avatarUrl = person.avatar_url;
+      if (avatarUrl && !avatarUrl.startsWith('http') && !avatarUrl.startsWith('data:')) {
+        avatarUrl = await api.storage.signedUrl('profile-images', avatarUrl);
+      }
+
+      const calcAge = (dob) => {
+        if (!dob) return '';
+        const birth = new Date(`${dob}T00:00:00`);
+        const today = new Date();
+        let a = today.getFullYear() - birth.getFullYear();
+        if (today < new Date(today.getFullYear(), birth.getMonth(), birth.getDate())) a -= 1;
+        return a > 0 ? a : '';
+      };
+
+      const personAge = calcAge(person.date_of_birth);
+      const name = escape(person.full_name || 'Member');
+      const username = escape(person.username || 'member');
+      const city = escape([person.city, person.state].filter(Boolean).join(', ') || 'Location not shared');
+      const profession = escape(person.profession || 'Profession not shared');
+      const education = escape(person.education || 'Education not shared');
+      const manglik = escape(person.manglik_status || 'Manglik status not shared');
+      const religion = escape(person.religion || 'Religion not shared');
+      const bio = escape(person.bio || 'A thoughtful member of the Manglik Meets community.');
+      const initials = escape((person.full_name || '?').split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase());
+      const languages = Array.isArray(person.languages) ? person.languages.join(', ') : escape(person.languages || '—');
+      const interests = Array.isArray(person.interests) ? person.interests.join(', ') : escape(person.interests || '—');
+
+      content.innerHTML = `
+        <div class="member-visual drawer-profile-visual ${avatarUrl ? 'has-image' : 'tone-saffron'}" ${avatarUrl ? `style="background-image:linear-gradient(rgba(52,35,27,.08),rgba(52,35,27,.3)),url('${escape(avatarUrl)}');background-size:cover;background-position:center"` : ''}>
+          <span class="member-initials">${initials}</span>
+        </div>
+        <h2>${name}${personAge ? `, ${personAge}` : ''} ${person.is_verified ? '<span class="verified-mark">✓</span>' : ''}</h2>
+        <p class="drawer-subtitle">@${username} · ${city}</p>
+        <div class="drawer-data">
+          <div><small>Profession</small><strong>${profession}</strong></div>
+          <div><small>Education</small><strong>${education}</strong></div>
+          <div><small>Manglik status</small><strong>${manglik}</strong></div>
+          <div><small>Religion</small><strong>${religion}</strong></div>
+          <div><small>Languages</small><strong>${languages}</strong></div>
+          <div><small>Interests</small><strong>${interests}</strong></div>
+        </div>
+        <p class="drawer-bio">${bio}</p>
+        <div class="drawer-actions">
+          <button class="member-action" type="button" data-member-action="like" data-member-id="${person.id}">♡ Like</button>
+          <button class="member-action" type="button" data-member-action="save" data-member-id="${person.id}">⌑ Save</button>
+          <button class="member-action primary" type="button" data-member-action="message" data-member-id="${person.id}">✉ Message</button>
+        </div>
+      `;
+    } catch (error) {
+      content.innerHTML = `<div style="padding:30px;text-align:center;color:#c43e3e">Could not load profile: ${escape(error.message)}</div>`;
+    }
+  }
+
+  function closeMemberDrawer() {
+    $('#member-drawer')?.classList.remove('is-open', 'open');
+    $('#member-drawer-backdrop')?.classList.remove('is-open', 'open');
+    $('#member-drawer')?.setAttribute('aria-hidden', 'true');
+  }
+
   function bindSocialActions() {
+    $('#member-drawer-close')?.addEventListener('click', closeMemberDrawer);
+    $('#member-drawer-backdrop')?.addEventListener('click', closeMemberDrawer);
+
     document.addEventListener('click', async (event) => {
       const action = event.target.closest('[data-member-action], [data-match-action]');
       if (!action || !isUuid(action.dataset.memberId || action.dataset.personId)) return;
       const id = action.dataset.memberId || action.dataset.personId;
       const type = action.dataset.memberAction || action.dataset.matchAction;
-      if (!['like', 'save', 'pass', 'message'].includes(type)) return;
+      if (!['view', 'like', 'save', 'pass', 'message'].includes(type)) return;
       event.preventDefault(); event.stopImmediatePropagation();
+      if (type === 'view') {
+        openMemberDrawer(id);
+        return;
+      }
       try {
         await busy(action, async () => {
           if (type === 'like') await api.social.like(id);
