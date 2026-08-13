@@ -57,27 +57,50 @@
         try { await api.profile.save(profileState); toast('Profile securely saved to your account.'); } catch (error) { toast(`Profile could not be saved: ${error.message}`); }
       });
     });
-    const upload = (selector, kind) => $(selector)?.addEventListener('change', async (event) => {
-      const files = [...(event.target.files || [])]; if (!files.length) return;
+
+    document.addEventListener('change', async (event) => {
+      const input = event.target;
+      if (!input || input.type !== 'file') return;
+      const kind = input.dataset.profileMediaInput || input.dataset.wizardMedia || input.dataset.settingMedia ||
+        (input.id === 'profile-picture-upload' ? 'avatar' : input.id === 'cover-picture-upload' ? 'cover' : input.id === 'gallery-picture-upload' ? 'gallery' : null);
+      if (!kind) return;
+
+      const files = [...(input.files || [])];
+      if (!files.length) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
       try {
-        const uploads = await Promise.all(files.map((file, index) => api.profile.upload(file, kind, kind === 'gallery' ? profileState.media.gallery.length + index : 0)));
+        toast('Uploading photo to Supabase Storage…');
+        const uploads = await Promise.all(files.map((file, index) => api.profile.upload(file, kind, kind === 'gallery' ? (profileState.media?.gallery?.length || 0) + index : 0)));
         const item = uploads[0];
-        if (item?.signedUrl) {
-          if (kind === 'avatar') profileState.media.avatar = item.signedUrl;
-          if (kind === 'cover') profileState.media.cover = item.signedUrl;
+        const displayUrl = item?.url || item?.signedUrl;
+        if (displayUrl) {
+          if (kind === 'avatar') {
+            profileState.media.avatar = displayUrl;
+            profileState.avatar_url = item.path || item.storage_path;
+          }
+          if (kind === 'cover') {
+            profileState.media.cover = displayUrl;
+            profileState.cover_url = item.path || item.storage_path;
+          }
         }
         if (kind === 'gallery') {
           uploads.forEach((u) => {
-            if (u?.signedUrl && !profileState.media.gallery.some((g) => g.id === u.id || g.storage_path === u.storage_path)) {
-              profileState.media.gallery.push({ id: u.id, label: u.caption || 'A shared moment', url: u.signedUrl, className: '', storage_path: u.storage_path });
+            const gUrl = u?.url || u?.signedUrl;
+            if (gUrl && !profileState.media.gallery.some((g) => g.id === u.id || g.storage_path === u.storage_path)) {
+              profileState.media.gallery.push({ id: u.id, label: u.caption || 'A shared moment', url: gUrl, className: '', storage_path: u.storage_path });
             }
           });
         }
         renderProfile();
-        toast(`${uploads.length} photo${uploads.length === 1 ? '' : 's'} uploaded securely.`);
-      } catch (error) { toast(`Photo upload failed: ${error.message}`); }
-    });
-    upload('#profile-picture-upload', 'avatar'); upload('#cover-picture-upload', 'cover'); upload('#gallery-picture-upload', 'gallery');
+        window.ManglikNavigation?.loadIdentity();
+        toast(`${uploads.length} photo${uploads.length === 1 ? '' : 's'} uploaded and saved.`);
+      } catch (error) {
+        console.error('[Upload error]:', error);
+        toast(`Photo upload failed: ${error.message}`);
+      }
+    }, true);
     $('#gallery-manager-list')?.addEventListener('click', (event) => {
       const row = event.target.closest('[data-gallery-id]'); const item = profileState.media.gallery.find((photo) => photo.id === row?.dataset.galleryId);
       if (!item) return;

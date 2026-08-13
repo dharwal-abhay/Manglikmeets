@@ -9,21 +9,26 @@
   const requireUser = async () => { if (noClient()) throw noClient(); const { data, error } = await client.auth.getUser(); if (error) throw fail(error, 'session'); if (!data.user) throw new Error('Please sign in to continue.'); return data.user; };
   const run = async (request, context) => { const { data, error } = await request; if (error) throw fail(error, context); return data; };
   const array = (value) => Array.isArray(value) ? value : String(value || '').split(',').map((v) => v.trim()).filter(Boolean);
-  const toDbProfile = (state) => ({
-    full_name: state.name ?? state.full_name, username: state.username?.toLowerCase() || null, date_of_birth: state.dob || state.date_of_birth || null,
-    gender: state.gender || null, height: state.height || null, weight: state.weight || null, religion: state.religion || null, caste: state.caste || null,
-    manglik_status: state.manglikStatus || state.manglik_status || null, profession: state.profession || null, education: state.education || null,
-    income: state.income || null, languages: array(state.languages), bio: state.bio || null, interests: array(state.interests), hobbies: array(state.hobbies),
-    personality_traits: array(state.personalityTraits || state.personality_traits), smoking: state.smoking || null, drinking: state.drinking || null,
-    food_preference: state.foodPreference || state.food_preference || null, fitness: state.fitness || null, pets: state.pets || null,
-    looking_for: state.lookingFor || state.looking_for || null, marriage_timeline: state.marriageTimeline || state.marriage_timeline || null,
-    family_type: state.familyType || state.family_type || null, values_text: state.values || state.values_text || null, expectations: state.expectations || null,
-    city: state.city || null, state: state.state || null, mobile_number: state.mobile_number || state.mobile || null, recovery_email: state.recovery_email || null,
-    private_profile: state.private_profile ?? !!state.privacy?.privateProfile,
-    hide_age: state.hide_age ?? !!state.privacy?.hideAge, hide_city: state.hide_city ?? !!state.privacy?.hideCity, hide_profession: state.hide_profession ?? !!state.privacy?.hideProfession,
-    hide_last_seen: state.hide_last_seen ?? !!state.privacy?.hideLastSeen, hide_online_status: state.hide_online_status ?? !!state.privacy?.hideOnlineStatus
-  });
-  const fromDbProfile = (p) => !p ? null : ({ ...p, name: p.full_name || '', dob: p.date_of_birth || '', manglikStatus: p.manglik_status || '', foodPreference: p.food_preference || '', personalityTraits: (p.personality_traits || []).join(', '), lookingFor: p.looking_for || '', marriageTimeline: p.marriage_timeline || '', familyType: p.family_type || '', values: p.values_text || '', languages: (p.languages || []).join(', '), interests: (p.interests || []).join(', '), hobbies: (p.hobbies || []).join(', '), privacy: { privateProfile: p.private_profile, hideAge: p.hide_age, hideCity: p.hide_city, hideProfession: p.hide_profession, hideLastSeen: p.hide_last_seen, hideOnlineStatus: p.hide_online_status } });
+  const toDbProfile = (state) => {
+    const payload = {
+      full_name: state.name ?? state.full_name, username: state.username?.toLowerCase() || null, date_of_birth: state.dob || state.date_of_birth || null,
+      gender: state.gender || null, height: state.height || null, weight: state.weight || null, religion: state.religion || null, caste: state.caste || null,
+      manglik_status: state.manglikStatus || state.manglik_status || null, profession: state.profession || null, education: state.education || null,
+      income: state.income || null, languages: array(state.languages), bio: state.bio || null, interests: array(state.interests), hobbies: array(state.hobbies),
+      personality_traits: array(state.personalityTraits || state.personality_traits), smoking: state.smoking || null, drinking: state.drinking || null,
+      food_preference: state.foodPreference || state.food_preference || null, fitness: state.fitness || null, pets: state.pets || null,
+      looking_for: state.lookingFor || state.looking_for || null, marriage_timeline: state.marriageTimeline || state.marriage_timeline || null,
+      family_type: state.familyType || state.family_type || null, values_text: state.values || state.values_text || null, expectations: state.expectations || null,
+      city: state.city || null, state: state.state || null, mobile_number: state.mobile_number || state.mobile || null, recovery_email: state.recovery_email || null,
+      private_profile: state.private_profile ?? !!state.privacy?.privateProfile,
+      hide_age: state.hide_age ?? !!state.privacy?.hideAge, hide_city: state.hide_city ?? !!state.privacy?.hideCity, hide_profession: state.hide_profession ?? !!state.privacy?.hideProfession,
+      hide_last_seen: state.hide_last_seen ?? !!state.privacy?.hideLastSeen, hide_online_status: state.hide_online_status ?? !!state.privacy?.hideOnlineStatus
+    };
+    if (state.avatar_url) payload.avatar_url = state.avatar_url;
+    if (state.cover_url) payload.cover_url = state.cover_url;
+    return payload;
+  };
+  const fromDbProfile = (p) => !p ? null : ({ ...p, avatar_url: p.avatar_url || '', cover_url: p.cover_url || '', name: p.full_name || '', dob: p.date_of_birth || '', manglikStatus: p.manglik_status || '', foodPreference: p.food_preference || '', personalityTraits: (p.personality_traits || []).join(', '), lookingFor: p.looking_for || '', marriageTimeline: p.marriage_timeline || '', familyType: p.family_type || '', values: p.values_text || '', languages: (p.languages || []).join(', '), interests: (p.interests || []).join(', '), hobbies: (p.hobbies || []).join(', '), privacy: { privateProfile: p.private_profile, hideAge: p.hide_age, hideCity: p.hide_city, hideProfession: p.hide_profession, hideLastSeen: p.hide_last_seen, hideOnlineStatus: p.hide_online_status } });
   const profile = {
     async mine() { const user = await requireUser(); return fromDbProfile(await run(client.from('profiles').select('*, profile_media(*)').eq('id', user.id).maybeSingle(), 'load profile')); },
     async save(state) { const user = await requireUser(); const payload = { id: user.id, ...toDbProfile(state) }; return fromDbProfile(await run(client.from('profiles').upsert(payload).select().single(), 'save profile')); },
