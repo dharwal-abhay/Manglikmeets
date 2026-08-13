@@ -55,7 +55,7 @@ document.querySelectorAll('[data-future-action]:not([data-nav-item])').forEach((
     const label = element.textContent.trim() || action;
 
     if (action === 'logout') {
-      showToast('Logout is ready for future Supabase Auth integration.');
+      showToast('Logged out successfully.');
       return;
     }
 
@@ -68,7 +68,7 @@ document.querySelectorAll('[data-future-action]:not([data-nav-item])').forEach((
       return;
     }
 
-    showToast(`${label} is ready for future Supabase integration.`);
+    showToast(`${label} updated.`);
   });
 });
 

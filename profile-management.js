@@ -255,7 +255,7 @@ profileElements.editorForm.addEventListener('submit', (event) => {
   updatePrivacyFromFields('[data-profile-privacy]');
   renderProfile();
   setOpen(profileElements.editModal, false);
-  profileNotify('Profile saved locally and prepared for future Supabase upsert.');
+  profileNotify('Profile saved successfully.');
 });
 
 document.querySelector('#wizard-next').addEventListener('click', () => {

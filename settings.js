@@ -114,7 +114,7 @@
   const closeConfirm = () => { state.pendingAction = null; $('#settings-confirm').hidden = true; };
 
   async function initialize() {
-    if (!api?.client) { notify('Supabase is not configured for this page.'); return; }
+    if (!api?.client) { notify('Service is currently unavailable.'); return; }
     try {
       state.user = await api.requireUser();
       const [profile, settings] = await Promise.all([api.profile.mine(), api.settings.load()]);

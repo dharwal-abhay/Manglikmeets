@@ -183,7 +183,7 @@
     $('#message-thread').addEventListener('click', (event) => { const trigger = event.target.closest('[data-message-menu]'); if (trigger) toggleMessageMenu(trigger.dataset.messageMenu, trigger); });
     $('#message-action-menu').addEventListener('click', (event) => { const action = event.target.closest('[data-message-action]'); if (action) messageAction(action.dataset.messageAction); });
     $('#cancel-reply').addEventListener('click', () => { state.replyTo = null; renderReplyPreview(); });
-    $('#attachment-button').addEventListener('click', () => showToast('Attachments are ready for Supabase Storage integration.'));
+    $('#attachment-button').addEventListener('click', () => showToast('Choose an image using the photo button.'));
     $('#image-button').addEventListener('click', () => $('#image-upload-input').click());
     $('#image-upload-input').addEventListener('change', (event) => handleImage(event.target.files[0]));
     $('#remove-image-preview').addEventListener('click', () => { state.imageUrl = ''; $('#image-preview').hidden = true; $('#image-upload-input').value = ''; });

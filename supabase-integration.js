@@ -71,7 +71,7 @@
       event.stopImmediatePropagation();
 
       try {
-        toast('Uploading photo to Supabase Storage…');
+        toast('Uploading photo…');
         const uploads = await Promise.all(files.map((file, index) => api.profile.upload(file, kind, kind === 'gallery' ? (profileState.media?.gallery?.length || 0) + index : 0)));
         const item = uploads[0];
         const displayUrl = item?.url || item?.signedUrl;
@@ -123,6 +123,17 @@
     return data;
   }
 
+  async function getOppositeGender() {
+    try {
+      const user = await api.requireUser();
+      const { data: me } = await api.client.from('profiles').select('gender').eq('id', user.id).maybeSingle();
+      const g = (me?.gender || '').toLowerCase().trim();
+      if (g === 'male' || g === 'man' || g === 'm') return 'female';
+      if (g === 'female' || g === 'woman' || g === 'f') return 'male';
+    } catch (e) {}
+    return null;
+  }
+
   async function liveDiscover(event) {
     event?.preventDefault(); event?.stopImmediatePropagation();
     const input = $('#discover-search-input, #member-search-input');
@@ -136,7 +147,15 @@
     recommendedGrid.innerHTML = '<div class="empty-members">Searching the community…</div>';
 
     try {
-      const result = await api.profile.search({ query: input?.value || '', filters: currentFilters(), limit: 100 });
+      const filters = currentFilters();
+      if (!filters.gender) {
+        const opp = await getOppositeGender();
+        if (opp) filters.gender = opp;
+      }
+      const currentUser = await api.requireUser().catch(() => null);
+      let result = await api.profile.search({ query: input?.value || '', filters, limit: 100 });
+      if (currentUser) result = result.filter((p) => p.id !== currentUser.id);
+
       const cardsData = await Promise.all(result.map(async (person) => {
         let avatar_url = person.avatar_url;
         if (avatar_url && !avatar_url.startsWith('http') && !avatar_url.startsWith('data:')) {
@@ -177,9 +196,9 @@
   }
 
   async function openMemberDrawer(personId) {
-    const drawer = $('#member-drawer');
-    const backdrop = $('#member-drawer-backdrop');
-    const content = $('#member-drawer-content');
+    const drawer = $('#member-drawer, #match-drawer');
+    const backdrop = $('#member-drawer-backdrop, #match-drawer-backdrop');
+    const content = $('#member-drawer-content, #match-drawer-content');
     if (!drawer || !content) return;
 
     drawer.classList.add('is-open', 'open');
@@ -245,14 +264,18 @@
   }
 
   function closeMemberDrawer() {
-    $('#member-drawer')?.classList.remove('is-open', 'open');
-    $('#member-drawer-backdrop')?.classList.remove('is-open', 'open');
-    $('#member-drawer')?.setAttribute('aria-hidden', 'true');
+    document.querySelectorAll('#member-drawer, #match-drawer').forEach((d) => {
+      d.classList.remove('is-open', 'open');
+      d.setAttribute('aria-hidden', 'true');
+    });
+    document.querySelectorAll('#member-drawer-backdrop, #match-drawer-backdrop').forEach((b) => {
+      b.classList.remove('is-open', 'open');
+    });
   }
 
   function bindSocialActions() {
-    $('#member-drawer-close')?.addEventListener('click', closeMemberDrawer);
-    $('#member-drawer-backdrop')?.addEventListener('click', closeMemberDrawer);
+    document.querySelectorAll('#member-drawer-close, #match-drawer-close').forEach((btn) => btn.addEventListener('click', closeMemberDrawer));
+    document.querySelectorAll('#member-drawer-backdrop, #match-drawer-backdrop').forEach((backdrop) => backdrop.addEventListener('click', closeMemberDrawer));
 
     document.addEventListener('click', async (event) => {
       const action = event.target.closest('[data-member-action], [data-match-action]');
@@ -341,10 +364,12 @@
         let pendingRows = [];
         try { pendingRows = await api.social.pendingLikes(); } catch (e) { console.warn('Pending likes unavailable:', e.message); }
 
-        /* Fetch suggested profiles (everyone not already matched or pending) */
+        /* Fetch suggested profiles (everyone not already matched or pending, filtered by opposite gender) */
         let suggestedProfiles = [];
         try {
-          const allProfiles = await api.profile.search({ limit: 50 });
+          const opp = await getOppositeGender();
+          const filters = opp ? { gender: opp } : {};
+          const allProfiles = await api.profile.search({ filters, limit: 50 });
           const matchedIds = new Set(mutualRows.map((r) => r.user_one_id === user.id ? r.user_two_id : r.user_one_id));
           const pendingIds = new Set(pendingRows.map((r) => r.user_one_id || r.user_id));
           suggestedProfiles = (allProfiles || []).filter((p) => p.id !== user.id && !matchedIds.has(p.id) && !pendingIds.has(p.id));
@@ -484,15 +509,330 @@
   }
 
   async function bindMessages() {
-    if (!$('#chat-list')) return;
+    const chatList = $('#chat-list');
+    if (!chatList) return;
+
     let active = sessionStorage.getItem('manglik-meets-open-conversation') || '';
     const currentUser = await api.requireUser().catch(() => null);
+    if (!currentUser) return;
+
     let channel = null;
-    const renderThread = async () => { if (!active) return; const box = $('#message-thread'); box.setAttribute('aria-busy', 'true'); try { const items = await api.chat.messages(active); box.innerHTML = items.length ? items.map((item) => `<div class="message-row ${item.sender_id === currentUser?.id ? 'mine' : ''}"><article class="message-bubble"><p>${escape(item.body || 'Shared an image')}</p><small>${new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</small></article></div>`).join('') : '<div class="chat-list-empty"><p>No messages yet. Start a thoughtful conversation.</p></div>'; box.scrollTop = box.scrollHeight; } catch (error) { toast(`Messages could not load: ${error.message}`); } finally { box.removeAttribute('aria-busy'); } };
-    try { const rows = await api.chat.conversations(); const list = $('#chat-list'); list.innerHTML = rows.map((row) => { const other = row.conversations?.conversation_members?.find((member) => member.user_id !== currentUser?.id); const p = other?.profiles || {}; return `<button class="chat-list-item" type="button" data-live-conversation="${row.conversation_id}"><span class="chat-avatar">${escape((p.full_name || '?').slice(0,2))}</span><span><strong>${escape(p.full_name || 'Conversation')}</strong><small>${escape(p.is_online ? 'Online' : 'Private conversation')}</small></span></button>`; }).join(''); $('#chat-list-empty').hidden = rows.length !== 0; if (!active && rows[0]) active = rows[0].conversation_id; await renderThread(); } catch (error) { toast(`Conversations could not load: ${error.message}`); }
-    $('#chat-list').addEventListener('click', async (event) => { const row = event.target.closest('[data-live-conversation]'); if (!row) return; active = row.dataset.liveConversation; sessionStorage.setItem('manglik-meets-open-conversation', active); channel?.unsubscribe(); channel = api.chat.subscribe(active, renderThread); await renderThread(); });
-    $('#message-composer')?.addEventListener('submit', async (event) => { if (!active) return; event.preventDefault(); event.stopImmediatePropagation(); const input = $('#message-input'); const body = input.value.trim(); if (!body) return; try { await api.chat.send({ conversationId: active, body }); input.value = ''; await renderThread(); } catch (error) { toast(`Message could not be sent: ${error.message}`); } }, true);
-    if (active) channel = api.chat.subscribe(active, renderThread);
+    let selectedImageFile = null;
+    let conversationsCache = [];
+
+    const resolveAvatar = async (profile) => {
+      if (!profile) return '';
+      let url = profile.avatar_url;
+      if (url && !url.startsWith('http') && !url.startsWith('data:')) {
+        url = await api.storage.signedUrl('profile-images', url);
+      }
+      return url || '';
+    };
+
+    const resolveMediaUrl = async (item) => {
+      const pathOrUrl = item.media_url || item.image_path;
+      if (!pathOrUrl) return '';
+      if (pathOrUrl.startsWith('http') || pathOrUrl.startsWith('data:')) return pathOrUrl;
+      return api.storage.signedUrl('chat-media', pathOrUrl);
+    };
+
+    const renderHeaderAndDetails = async (otherProfile) => {
+      const headerNode = $('#chat-header');
+      const detailsNode = $('#conversation-details');
+      if (!otherProfile) {
+        if (headerNode) headerNode.innerHTML = '<div><strong>Conversation</strong></div>';
+        if (detailsNode) detailsNode.innerHTML = '';
+        return;
+      }
+
+      const avatarUrl = await resolveAvatar(otherProfile);
+      const name = escape(otherProfile.full_name || 'Member');
+      const initials = escape((otherProfile.full_name || '?').split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase());
+      const isOnline = !!otherProfile.is_online;
+      const statusText = isOnline ? 'Online now' : 'Recently active';
+
+      if (headerNode) {
+        headerNode.innerHTML = `
+          <button class="chat-mobile-list-toggle" id="chat-mobile-list-toggle" type="button" aria-label="Show chats">‹</button>
+          <span class="chat-avatar ${avatarUrl ? 'has-image' : 'tone-saffron'}"${avatarUrl ? ` style="background-image:url('${escape(avatarUrl)}');background-size:cover;background-position:center"` : ''}>
+            ${initials}${isOnline ? '<i class="online-dot"></i>' : ''}
+          </span>
+          <div class="chat-contact">
+            <strong>${name}</strong>
+            <span>${statusText}</span>
+          </div>
+          <div class="chat-header-actions">
+            <button type="button" data-header-action="details" aria-label="Conversation info">ⓘ</button>
+          </div>
+        `;
+      }
+
+      if (detailsNode) {
+        detailsNode.innerHTML = `
+          <div class="detail-avatar ${avatarUrl ? 'has-image' : 'tone-saffron'}"${avatarUrl ? ` style="background-image:url('${escape(avatarUrl)}');background-size:cover;background-position:center"` : ''}>
+            ${initials}${isOnline ? '<i class="online-dot"></i>' : ''}
+          </div>
+          <h1 class="detail-name">${name}</h1>
+          <p class="detail-status">${statusText}</p>
+          <div class="detail-actions">
+            <button type="button" data-detail-action="profile" data-profile-id="${otherProfile.id}">View profile</button>
+          </div>
+        `;
+      }
+    };
+
+    const renderThread = async () => {
+      if (!active) {
+        const thread = $('#message-thread');
+        if (thread) thread.innerHTML = '<div class="chat-list-empty"><p>Select or start a conversation to begin chatting.</p></div>';
+        return;
+      }
+
+      const thread = $('#message-thread');
+      if (!thread) return;
+
+      thread.setAttribute('aria-busy', 'true');
+      try {
+        const items = await api.chat.messages(active);
+        const resolvedItems = await Promise.all(items.map(async (item) => {
+          const imageUrl = await resolveMediaUrl(item);
+          return { ...item, imageUrl };
+        }));
+
+        if (!resolvedItems.length) {
+          thread.innerHTML = '<div class="chat-list-empty"><p>No messages yet. Send a message to start the conversation!</p></div>';
+        } else {
+          let previousDateStr = '';
+          thread.innerHTML = resolvedItems.map((item) => {
+            const isMine = item.sender_id === currentUser.id;
+            const textContent = escape(item.body || item.content || '');
+            const msgDate = new Date(item.created_at);
+            const dateStr = msgDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            let dateHeader = '';
+            if (dateStr !== previousDateStr) {
+              previousDateStr = dateStr;
+              dateHeader = `<div class="date-separator">${escape(dateStr)}</div>`;
+            }
+            const timeStr = msgDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            const imgTag = item.imageUrl ? `<div style="margin-bottom:6px;"><img src="${escape(item.imageUrl)}" alt="Chat photo" style="max-width:240px;max-height:240px;border-radius:12px;display:block;cursor:pointer;" onclick="window.open('${escape(item.imageUrl)}','_blank')"></div>` : '';
+
+            return `${dateHeader}
+              <div class="message-row ${isMine ? 'own mine' : ''}" data-message-id="${item.id}">
+                ${isMine ? `<button class="message-action-trigger" type="button" data-message-delete="${item.id}" title="Delete message">×</button>` : ''}
+                <div class="message-bubble">
+                  ${imgTag}
+                  ${textContent ? `<p>${textContent}</p>` : ''}
+                  <small class="message-time">${escape(timeStr)}${isMine ? '<span class="read-receipt">✓✓</span>' : ''}</small>
+                </div>
+              </div>`;
+          }).join('');
+        }
+
+        /* Auto-scroll to bottom */
+        requestAnimationFrame(() => {
+          thread.scrollTop = thread.scrollHeight;
+        });
+      } catch (error) {
+        toast(`Messages could not load: ${error.message}`);
+      } finally {
+        thread.removeAttribute('aria-busy');
+      }
+    };
+
+    const renderConversations = async () => {
+      try {
+        const rows = await api.chat.conversations();
+        conversationsCache = rows;
+
+        const resolvedConvs = await Promise.all(rows.map(async (row) => {
+          const members = row.conversations?.conversation_members || [];
+          const otherMember = members.find((m) => m.user_id !== currentUser.id);
+          const otherProfile = otherMember?.profiles || null;
+          const avatarUrl = otherProfile ? await resolveAvatar(otherProfile) : '';
+          return { ...row, otherProfile, avatarUrl };
+        }));
+
+        const filterTerm = ($('#chat-search-input')?.value || '').trim().toLowerCase();
+        const activeFilter = $('.chat-filter.active')?.dataset.chatFilter || 'recent';
+
+        const filtered = resolvedConvs.filter(({ otherProfile }) => {
+          if (!otherProfile) return true;
+          const name = (otherProfile.full_name || '').toLowerCase();
+          const username = (otherProfile.username || '').toLowerCase();
+          const matchesTerm = !filterTerm || name.includes(filterTerm) || username.includes(filterTerm);
+          return matchesTerm;
+        });
+
+        chatList.innerHTML = filtered.length
+          ? filtered.map(({ conversation_id, otherProfile, avatarUrl }) => {
+              const name = escape(otherProfile?.full_name || 'Private conversation');
+              const initials = escape((otherProfile?.full_name || '?').split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase());
+              const isOnline = !!otherProfile?.is_online;
+              const isActive = conversation_id === active;
+              return `<button class="chat-row ${isActive ? 'active' : ''}" type="button" data-live-conversation="${conversation_id}">
+                <span class="chat-avatar ${avatarUrl ? 'has-image' : 'tone-saffron'}"${avatarUrl ? ` style="background-image:url('${escape(avatarUrl)}');background-size:cover;background-position:center"` : ''}>
+                  ${initials}${isOnline ? '<i class="online-dot"></i>' : ''}
+                </span>
+                <span class="chat-row-copy">
+                  <strong>${name}</strong>
+                  <span>Click to open conversation</span>
+                </span>
+              </button>`;
+            }).join('')
+          : '<div class="chat-list-empty"><p>No conversations found.</p></div>';
+
+        $('#chat-list-empty').hidden = filtered.length !== 0;
+
+        /* Auto-select active conversation */
+        if (!active && filtered.length) {
+          active = filtered[0].conversation_id;
+          sessionStorage.setItem('manglik-meets-open-conversation', active);
+        }
+
+        /* Render header and details for active conversation */
+        const activeConv = resolvedConvs.find((c) => c.conversation_id === active);
+        await renderHeaderAndDetails(activeConv?.otherProfile || null);
+
+        /* Render thread */
+        await renderThread();
+      } catch (error) {
+        toast(`Conversations could not load: ${error.message}`);
+      }
+    };
+
+    await renderConversations();
+
+    /* Subscribe to realtime message changes for active conversation */
+    const subscribeRealtime = (convId) => {
+      if (channel) channel.unsubscribe();
+      if (!convId) return;
+      channel = api.chat.subscribe(convId, async () => {
+        await renderThread();
+        await renderConversations();
+      });
+    };
+
+    if (active) subscribeRealtime(active);
+
+    /* Click conversation item */
+    chatList.addEventListener('click', async (event) => {
+      const row = event.target.closest('[data-live-conversation]');
+      if (!row) return;
+      active = row.dataset.liveConversation;
+      sessionStorage.setItem('manglik-meets-open-conversation', active);
+      subscribeRealtime(active);
+      await renderConversations();
+    });
+
+    /* Conversation search input */
+    $('#chat-search-input')?.addEventListener('input', () => {
+      renderConversations();
+    });
+
+    /* Image upload attachment controls */
+    const imageBtn = $('#image-button');
+    const imageInput = $('#image-upload-input');
+    const imagePreview = $('#image-preview');
+    const previewImg = $('#image-preview-image');
+    const removePreviewBtn = $('#remove-image-preview');
+
+    imageBtn?.addEventListener('click', () => imageInput?.click());
+
+    imageInput?.addEventListener('change', (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        toast('Image must be smaller than 2 MB.');
+        imageInput.value = '';
+        return;
+      }
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        toast('Choose a JPG, PNG, or WebP image file.');
+        imageInput.value = '';
+        return;
+      }
+      selectedImageFile = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (previewImg) previewImg.src = e.target.result;
+        if (imagePreview) imagePreview.hidden = false;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    removePreviewBtn?.addEventListener('click', () => {
+      selectedImageFile = null;
+      if (imageInput) imageInput.value = '';
+      if (imagePreview) imagePreview.hidden = true;
+    });
+
+    /* Form submit: Send text or image message */
+    $('#message-composer')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (!active) {
+        toast('Please select a conversation first.');
+        return;
+      }
+
+      const textInput = $('#message-input');
+      const text = textInput ? textInput.value.trim() : '';
+
+      if (!text && !selectedImageFile) return;
+
+      try {
+        let mediaUrl = null;
+        let messageType = 'text';
+
+        if (selectedImageFile) {
+          toast('Uploading chat photo…');
+          const uploadRes = await api.chat.uploadImage(selectedImageFile, active);
+          mediaUrl = uploadRes.path;
+          messageType = 'image';
+        }
+
+        await api.chat.send({
+          conversationId: active,
+          body: text || null,
+          content: text || null,
+          mediaUrl,
+          messageType
+        });
+
+        if (textInput) textInput.value = '';
+        selectedImageFile = null;
+        if (imageInput) imageInput.value = '';
+        if (imagePreview) imagePreview.hidden = true;
+
+        await renderThread();
+        await renderConversations();
+      } catch (error) {
+        toast(`Could not send message: ${error.message}`);
+      }
+    }, true);
+
+    /* Delete message handler */
+    $('#message-thread')?.addEventListener('click', async (event) => {
+      const delBtn = event.target.closest('[data-message-delete]');
+      if (!delBtn) return;
+      const msgId = delBtn.dataset.messageDelete;
+      if (!msgId) return;
+      try {
+        await api.chat.deleteMessage(msgId);
+        toast('Message deleted.');
+        await renderThread();
+      } catch (error) {
+        toast(`Could not delete message: ${error.message}`);
+      }
+    });
+
+    /* Details panel action buttons */
+    $('#conversation-details')?.addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-detail-action="profile"]');
+      if (btn?.dataset.profileId) {
+        openMemberDrawer(btn.dataset.profileId);
+      }
+    });
   }
 
   bindProfile(); bindDiscover(); bindSocialActions(); bindMatches(); bindNotifications(); bindSettings(); bindFeed(); bindMessages();

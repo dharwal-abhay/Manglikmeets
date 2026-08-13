@@ -33,7 +33,7 @@
     async mine() { const user = await requireUser(); return fromDbProfile(await run(client.from('profiles').select('*, profile_media(*)').eq('id', user.id).maybeSingle(), 'load profile')); },
     async save(state) { const user = await requireUser(); const payload = { id: user.id, ...toDbProfile(state) }; return fromDbProfile(await run(client.from('profiles').upsert(payload).select().single(), 'save profile')); },
     async patch(values) { const user = await requireUser(); return fromDbProfile(await run(client.from('profiles').update(values).eq('id', user.id).select().single(), 'update profile')); },
-    async search({ query = '', filters = {}, limit = 100, from = 0 } = {}) { await requireUser(); let request = client.from('profiles').select('id, full_name, username, date_of_birth, gender, city, state, profession, education, religion, interests, languages, bio, manglik_status, avatar_url, cover_url, is_verified, is_online, last_active_at, created_at, profile_media(*)').order('created_at', { ascending: false }).range(from, from + limit - 1); const term = query.trim().replace(/[,%()]/g, ''); if (term) request = request.or(`full_name.ilike.%${term}%,username.ilike.%${term}%,city.ilike.%${term}%,state.ilike.%${term}%,profession.ilike.%${term}%,education.ilike.%${term}%,religion.ilike.%${term}%`); if (filters.gender) request = request.eq('gender', filters.gender); if (filters.religion) request = request.eq('religion', filters.religion); if (filters.manglik) request = request.eq('manglik_status', filters.manglik); if (filters.profession) request = request.ilike('profession', `%${filters.profession}%`); if (filters.education) request = request.ilike('education', `%${filters.education}%`); if (filters.income) request = request.eq('income', filters.income); if (filters.verifiedOnly) request = request.eq('is_verified', true); if (filters.onlineOnly) request = request.eq('is_online', true); if (filters.recentlyActive) request = request.gte('last_active_at', new Date(Date.now() - 30 * 86400000).toISOString()); if (filters.ageMin || filters.ageMax) { const today = new Date(); if (filters.ageMin) { const latest = new Date(today.getFullYear() - Number(filters.ageMin), today.getMonth(), today.getDate()).toISOString().slice(0, 10); request = request.lte('date_of_birth', latest); } if (filters.ageMax) { const earliest = new Date(today.getFullYear() - Number(filters.ageMax) - 1, today.getMonth(), today.getDate() + 1).toISOString().slice(0, 10); request = request.gte('date_of_birth', earliest); } } return run(request, 'search profiles'); },
+    async search({ query = '', filters = {}, limit = 100, from = 0 } = {}) { await requireUser(); let request = client.from('profiles').select('id, full_name, username, date_of_birth, gender, city, state, profession, education, religion, interests, languages, bio, manglik_status, avatar_url, cover_url, is_verified, is_online, last_active_at, created_at, profile_media(*)').order('created_at', { ascending: false }).range(from, from + limit - 1); const term = query.trim().replace(/[,%()]/g, ''); if (term) request = request.or(`full_name.ilike.%${term}%,username.ilike.%${term}%,city.ilike.%${term}%,state.ilike.%${term}%,profession.ilike.%${term}%,education.ilike.%${term}%,religion.ilike.%${term}%`); if (filters.gender) request = request.ilike('gender', `%${filters.gender}%`); if (filters.religion) request = request.eq('religion', filters.religion); if (filters.manglik) request = request.eq('manglik_status', filters.manglik); if (filters.profession) request = request.ilike('profession', `%${filters.profession}%`); if (filters.education) request = request.ilike('education', `%${filters.education}%`); if (filters.income) request = request.eq('income', filters.income); if (filters.verifiedOnly) request = request.eq('is_verified', true); if (filters.onlineOnly) request = request.eq('is_online', true); if (filters.recentlyActive) request = request.gte('last_active_at', new Date(Date.now() - 30 * 86400000).toISOString()); if (filters.ageMin || filters.ageMax) { const today = new Date(); if (filters.ageMin) { const latest = new Date(today.getFullYear() - Number(filters.ageMin), today.getMonth(), today.getDate()).toISOString().slice(0, 10); request = request.lte('date_of_birth', latest); } if (filters.ageMax) { const earliest = new Date(today.getFullYear() - Number(filters.ageMax) - 1, today.getMonth(), today.getDate() + 1).toISOString().slice(0, 10); request = request.gte('date_of_birth', earliest); } } return run(request, 'search profiles'); },
     async upload(file, type, sortOrder = 0) {
       const user = await requireUser();
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -206,11 +206,167 @@
     }
   };
   const chat = {
-    async conversations() { const user = await requireUser(); return run(client.from('conversation_members').select('conversation_id, is_favorite, last_read_at, conversations(id, updated_at, conversation_members(user_id, profiles!user_id(full_name, username, avatar_url, is_online)))').eq('user_id', user.id).order('joined_at', { ascending: false }), 'load conversations'); },
-    async messages(conversationId) { await requireUser(); return run(client.from('messages').select('*, sender:profiles!sender_id(full_name, avatar_url)').eq('conversation_id', conversationId).is('deleted_at', null).order('created_at'), 'load messages'); },
-    async send({ conversationId, body, imagePath, replyToId }) { const user = await requireUser(); return run(client.from('messages').insert({ conversation_id: conversationId, sender_id: user.id, body: body || null, image_path: imagePath || null, reply_to_id: replyToId || null }).select().single(), 'send message'); },
-    async start(otherUserId) { await requireUser(); return run(client.rpc('get_or_create_conversation', { other_user_id: otherUserId }), 'start conversation'); },
-    subscribe(conversationId, onMessage) { if (!client) return null; return client.channel(`messages:${conversationId}`).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` }, onMessage).subscribe(); }
+    async conversations() {
+      const user = await requireUser();
+      /* Strategy 1: Join with named FK constraints */
+      try {
+        const res = await client.from('conversation_members')
+          .select('conversation_id, is_favorite, last_read_at, joined_at, conversations!conversation_members_conversation_id_fkey(id, updated_at, conversation_members(user_id, profiles!conversation_members_user_id_fkey(id, full_name, username, avatar_url, is_online, last_active_at)))')
+          .eq('user_id', user.id)
+          .order('joined_at', { ascending: false });
+        if (res.error) throw res.error;
+        return res.data || [];
+      } catch (e1) {
+        console.warn('[Conversations strategy 1]:', e1.message);
+        /* Strategy 2: Without explicit constraint names */
+        try {
+          const res2 = await client.from('conversation_members')
+            .select('conversation_id, is_favorite, last_read_at, joined_at, conversations(id, updated_at, conversation_members(user_id, profiles(id, full_name, username, avatar_url, is_online, last_active_at)))')
+            .eq('user_id', user.id)
+            .order('joined_at', { ascending: false });
+          if (res2.error) throw res2.error;
+          return res2.data || [];
+        } catch (e2) {
+          console.warn('[Conversations strategy 2]:', e2.message);
+          /* Strategy 3: Multi-step fallback */
+          try {
+            const { data: myMembers } = await client.from('conversation_members').select('*').eq('user_id', user.id);
+            if (!myMembers?.length) return [];
+            const convIds = myMembers.map((m) => m.conversation_id);
+            const { data: allMembers } = await client.from('conversation_members').select('*').in('conversation_id', convIds);
+            const otherUserIds = (allMembers || []).filter((m) => m.user_id !== user.id).map((m) => m.user_id);
+            const { data: profiles } = await client.from('profiles').select('id, full_name, username, avatar_url, is_online, last_active_at').in('id', otherUserIds);
+            const profileMap = Object.fromEntries((profiles || []).map((p) => [p.id, p]));
+            const { data: convs } = await client.from('conversations').select('*').in('id', convIds);
+            const convMap = Object.fromEntries((convs || []).map((c) => [c.id, c]));
+
+            return myMembers.map((myMem) => {
+              const membersInConv = (allMembers || []).filter((m) => m.conversation_id === myMem.conversation_id);
+              return {
+                conversation_id: myMem.conversation_id,
+                is_favorite: myMem.is_favorite || false,
+                last_read_at: myMem.last_read_at,
+                joined_at: myMem.joined_at,
+                conversations: {
+                  id: myMem.conversation_id,
+                  updated_at: convMap[myMem.conversation_id]?.updated_at || myMem.joined_at,
+                  conversation_members: membersInConv.map((m) => ({
+                    user_id: m.user_id,
+                    profiles: profileMap[m.user_id] || null
+                  }))
+                }
+              };
+            });
+          } catch (e3) { console.warn('[Conversations strategy 3]:', e3.message); return []; }
+        }
+      }
+    },
+    async messages(conversationId) {
+      await requireUser();
+      let data = null;
+      try {
+        const res = await client.from('messages')
+          .select('*, sender:profiles!messages_sender_id_fkey(id, full_name, avatar_url)')
+          .eq('conversation_id', conversationId)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: true });
+        if (res.error) throw res.error;
+        data = res.data;
+      } catch (e1) {
+        try {
+          const res2 = await client.from('messages')
+            .select('*, sender:profiles!sender_id(id, full_name, avatar_url)')
+            .eq('conversation_id', conversationId)
+            .is('deleted_at', null)
+            .order('created_at', { ascending: true });
+          if (res2.error) throw res2.error;
+          data = res2.data;
+        } catch (e2) {
+          const { data: rawMsgs } = await client.from('messages')
+            .select('*')
+            .eq('conversation_id', conversationId)
+            .is('deleted_at', null)
+            .order('created_at', { ascending: true });
+          if (rawMsgs?.length) {
+            const senderIds = [...new Set(rawMsgs.map((m) => m.sender_id))];
+            const { data: senders } = await client.from('profiles').select('id, full_name, avatar_url').in('id', senderIds);
+            const senderMap = Object.fromEntries((senders || []).map((p) => [p.id, p]));
+            data = rawMsgs.map((m) => ({ ...m, sender: senderMap[m.sender_id] || null }));
+          } else { data = []; }
+        }
+      }
+      return data || [];
+    },
+    async send({ conversationId, body, content, messageType = 'text', mediaUrl, imagePath, replyToId }) {
+      const user = await requireUser();
+      const text = body || content || null;
+      const mType = (mediaUrl || imagePath) ? 'image' : messageType;
+      const payload = {
+        conversation_id: conversationId,
+        sender_id: user.id,
+        body: text,
+        content: text,
+        message_type: mType,
+        media_url: mediaUrl || imagePath || null,
+        image_path: imagePath || mediaUrl || null,
+        reply_to_id: replyToId || null
+      };
+      try {
+        return await run(client.from('messages').insert(payload).select().single(), 'send message');
+      } catch (err) {
+        console.warn('[Message insert error]:', err.message);
+        throw err;
+      }
+    },
+    async uploadImage(file, conversationId) {
+      const user = await requireUser();
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!file || !allowedTypes.includes(file.type)) {
+        throw new Error('Only JPG, PNG, or WebP image files are supported.');
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        throw new Error('Image size must be smaller than 2 MB.');
+      }
+      const bucketId = 'chat-media';
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const path = `${user.id}/${conversationId}/${crypto.randomUUID()}.${ext}`;
+      await run(client.storage.from(bucketId).upload(path, file, { contentType: file.type, upsert: true }), 'upload chat image');
+      const resolvedUrl = (await storage.signedUrl(bucketId, path)) || storage.publicUrl(bucketId, path);
+      return { path, url: resolvedUrl, signedUrl: resolvedUrl };
+    },
+    async deleteMessage(messageId) {
+      const user = await requireUser();
+      return run(client.from('messages').update({ deleted_at: new Date().toISOString() }).eq('id', messageId).eq('sender_id', user.id), 'delete message');
+    },
+    async start(otherUserId) {
+      const user = await requireUser();
+      if (user.id === otherUserId) throw new Error('Cannot start a conversation with yourself.');
+      try {
+        const { data, error } = await client.rpc('get_or_create_conversation', { other_user_id: otherUserId });
+        if (!error && data) return data;
+      } catch (e) { console.warn('[RPC get_or_create_conversation fallback]:', e.message); }
+
+      const { data: myConvs } = await client.from('conversation_members').select('conversation_id').eq('user_id', user.id);
+      if (myConvs?.length) {
+        const myConvIds = myConvs.map((c) => c.conversation_id);
+        const { data: mutual } = await client.from('conversation_members').select('conversation_id').eq('user_id', otherUserId).in('conversation_id', myConvIds).maybeSingle();
+        if (mutual) return mutual.conversation_id;
+      }
+      const { data: newConv, error: errConv } = await client.from('conversations').insert({}).select().single();
+      if (errConv) throw errConv;
+      await client.from('conversation_members').insert([
+        { conversation_id: newConv.id, user_id: user.id },
+        { conversation_id: newConv.id, user_id: otherUserId }
+      ]);
+      return newConv.id;
+    },
+    subscribe(conversationId, onMessage) {
+      if (!client) return null;
+      return client.channel(`messages:${conversationId}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` }, onMessage)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` }, onMessage)
+        .subscribe();
+    }
   };
   const notifications = {
     async list() { const user = await requireUser(); return run(client.from('notifications').select('*, actor:profiles!actor_id(full_name, avatar_url)').eq('user_id', user.id).order('created_at', { ascending: false }), 'load notifications'); },

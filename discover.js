@@ -350,7 +350,7 @@
                 shareMember(member);
                 break;
             case "message":
-                showToast(`Messaging ${member.name} will be available when messages are connected to Supabase.`);
+                window.location.href = 'messages.html';
                 break;
             default:
                 break;
