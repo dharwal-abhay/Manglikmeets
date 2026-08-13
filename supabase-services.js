@@ -38,11 +38,25 @@
       const mediaType = ['avatar', 'cover', 'gallery'].includes(type) ? type : 'gallery';
       const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const path = `${user.id}/${mediaType}/${crypto.randomUUID()}.${extension}`;
+
+      if (mediaType === 'avatar' || mediaType === 'cover') {
+        try {
+          const { data: currentProfile } = await client.from('profiles').select(`${mediaType}_url`).eq('id', user.id).maybeSingle();
+          const oldPath = currentProfile?.[`${mediaType}_url`];
+          if (oldPath && !oldPath.startsWith('http') && !oldPath.startsWith('data:')) {
+            await client.storage.from(bucketId).remove([oldPath]);
+          }
+          await client.from('profile_media').delete().eq('profile_id', user.id).eq('media_type', mediaType);
+        } catch (e) {
+          console.warn(`[Previous ${mediaType} cleanup note]:`, e.message);
+        }
+      }
+
       await run(client.storage.from(bucketId).upload(path, file, { upsert: true, contentType: file.type }), 'upload image');
       const row = await run(client.from('profile_media').insert({ profile_id: user.id, bucket_id: bucketId, storage_path: path, media_type: mediaType, mime_type: file.type, size_bytes: file.size, sort_order: sortOrder }).select().single(), 'save media');
-      const signedUrl = await storage.signedUrl(bucketId, path, 60 * 60);
+      const resolvedUrl = (await storage.signedUrl(bucketId, path)) || storage.publicUrl(bucketId, path);
       if (mediaType === 'avatar' || mediaType === 'cover') await run(client.from('profiles').update({ [`${mediaType}_url`]: path }).eq('id', user.id), 'link image');
-      return { ...row, signedUrl };
+      return { ...row, url: resolvedUrl, signedUrl: resolvedUrl };
     },
     async mediaUrls(media) { if (!media?.length) return []; return Promise.all(media.map(async (item) => ({ ...item, url: await storage.signedUrl(item.bucket_id || 'profile-images', item.storage_path) }))); },
     async deleteMedia(media) { await requireUser(); await run(client.storage.from(media.bucket_id || 'profile-images').remove([media.storage_path]), 'delete image'); return run(client.from('profile_media').delete().eq('id', media.id), 'delete media record'); },
@@ -96,8 +110,15 @@
   };
   const storage = {
     bucketFor(type) { return 'profile-images'; },
+    publicUrl(bucketId, path) {
+      if (!path) return '';
+      if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
+      const targetBucket = bucketId || 'profile-images';
+      const { data } = client.storage.from(targetBucket).getPublicUrl(path);
+      return data?.publicUrl || '';
+    },
     async upload(file, type) { const user = await requireUser(); const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']; if (!file || !allowedTypes.includes(file.type)) throw new Error('Choose a valid JPG, PNG, or WebP image.'); if (file.size > 5 * 1024 * 1024) throw new Error('Choose a file smaller than 5 MB.'); const bucketId = 'profile-images'; const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'; const path = `${user.id}/${type || 'gallery'}/${crypto.randomUUID()}.${ext}`; await run(client.storage.from(bucketId).upload(path, file, { contentType: file.type, upsert: true }), 'upload file'); return { bucketId, path, fileName: file.name, mimeType: file.type, sizeBytes: file.size }; },
-    async signedUrl(bucketId, path, expiresIn = 3600) { if (!path) return ''; const targetBucket = bucketId || 'profile-images'; const { data, error } = await client.storage.from(targetBucket).createSignedUrl(path, expiresIn); if (error) { console.warn(`[Signed URL error for ${path}]:`, error.message); return ''; } return data?.signedUrl || ''; },
+    async signedUrl(bucketId, path, expiresIn = 3600) { if (!path) return ''; if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path; const targetBucket = bucketId || 'profile-images'; const { data, error } = await client.storage.from(targetBucket).createSignedUrl(path, expiresIn); if (error) { return storage.publicUrl(targetBucket, path); } return data?.signedUrl || storage.publicUrl(targetBucket, path); },
     async remove(bucketId, path) { return run(client.storage.from(bucketId || 'profile-images').remove([path]), 'delete file'); }
   };
   const realtime = {
