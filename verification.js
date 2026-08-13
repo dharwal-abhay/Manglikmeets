@@ -8,10 +8,10 @@
     action: 'Resend verification email',
     sentTitle: 'Verification email sent',
     sentBody: 'Please check your inbox for the confirmation link.',
-    developmentWelcomeTitle: 'Welcome to Manglik Meets',
-    developmentWelcomeBody: 'Your account is ready to use.',
+    developmentWelcomeTitle: 'Check your email',
+    developmentWelcomeBody: 'A confirmation link has been sent to your email address. Please confirm your email address.',
     productionWelcomeTitle: 'Check your email',
-    productionWelcomeBody: 'Open the confirmation email we sent to complete your account setup.'
+    productionWelcomeBody: 'A confirmation link has been sent to your email address. Please confirm your email address.'
   };
 
   const getUser = (sessionOrUser) => sessionOrUser?.user || sessionOrUser || null;
@@ -36,17 +36,14 @@
   };
 
   const getSignUpFeedback = (signUpData) => {
-    if (!requiresVerification()) return { title: copy.developmentWelcomeTitle, body: copy.developmentWelcomeBody };
-    return signUpData?.session
-      ? { title: copy.developmentWelcomeTitle, body: copy.developmentWelcomeBody }
-      : { title: copy.productionWelcomeTitle, body: copy.productionWelcomeBody };
+    return { title: copy.productionWelcomeTitle, body: copy.productionWelcomeBody };
   };
 
   const resend = async () => {
     const user = window.ManglikAuth?.getUser();
     const client = window.ManglikAuth?.client;
     if (!requiresVerification() || !user?.email || !client) return { skipped: true };
-    const { error } = await client.auth.resend({ type: 'signup', email: user.email, options: { emailRedirectTo: window.location.origin } });
+    const { error } = await client.auth.resend({ type: 'signup', email: user.email, options: { emailRedirectTo: `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}` } });
     return { error };
   };
 

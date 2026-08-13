@@ -799,7 +799,7 @@
           password: $('#register-password').value,
           options: {
             data: { full_name: fullName },
-            emailRedirectTo: window.location.origin
+            emailRedirectTo: `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}`
           }
         });
 
@@ -808,7 +808,6 @@
           return;
         }
 
-        if (data.session) { location.assign('dashboard.html'); return; }
         $('#auth-modal').classList.remove('open');
         const feedback = window.ManglikVerification.getSignUpFeedback(data);
         openMessage(feedback.title, feedback.body);
@@ -819,7 +818,7 @@
         if (!requireSupabase()) return;
 
         const { error } = await supabaseClient.auth.resetPasswordForEmail($('#reset-email').value.trim(), {
-          redirectTo: window.location.origin
+          redirectTo: `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}`
         });
 
         if (error) {
