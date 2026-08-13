@@ -89,26 +89,26 @@ const renderProfile = () => {
     else element.textContent = value || 'Add a little about yourself';
   });
 
-  const initials = profileState.name.split(' ').map((word) => word[0]).join('').slice(0, 2).toUpperCase();
+  const initials = String(profileState.name || 'Member').split(' ').filter(Boolean).map((word) => word[0]).join('').slice(0, 2).toUpperCase() || 'MM';
   const avatar = document.querySelector('#profile-avatar');
-  avatar.firstChild.nodeValue = initials;
-  if (profileState.media.avatar) avatar.style.backgroundImage = `url("${profileState.media.avatar}")`;
+  if (avatar && avatar.firstChild) avatar.firstChild.nodeValue = initials;
+  if (avatar && profileState.media?.avatar) avatar.style.backgroundImage = `url("${profileState.media.avatar}")`;
 
   const cover = document.querySelector('#profile-cover');
-  if (profileState.media.cover) {
+  if (cover && profileState.media?.cover) {
     cover.style.backgroundImage = `linear-gradient(rgba(240,169,104,.25),rgba(240,169,104,.25)), url("${profileState.media.cover}")`;
     cover.style.backgroundSize = 'cover';
     cover.style.backgroundPosition = 'center';
   }
 
-  document.querySelectorAll('[data-privacy-display="city"]').forEach((element) => element.hidden = profileState.privacy.hideCity);
-  document.querySelectorAll('[data-privacy-display="profession"]').forEach((element) => element.hidden = profileState.privacy.hideProfession);
-  document.querySelectorAll('[data-privacy-display="onlineStatus"]').forEach((element) => element.hidden = profileState.privacy.hideOnlineStatus);
+  document.querySelectorAll('[data-privacy-display="city"]').forEach((element) => element.hidden = Boolean(profileState.privacy?.hideCity));
+  document.querySelectorAll('[data-privacy-display="profession"]').forEach((element) => element.hidden = Boolean(profileState.privacy?.hideProfession));
+  document.querySelectorAll('[data-privacy-display="onlineStatus"]').forEach((element) => element.hidden = Boolean(profileState.privacy?.hideOnlineStatus));
   const about = document.querySelector('[data-component="about-section"]');
   if (about) {
     const heading = about.querySelector('h2');
     const copy = about.querySelector('.body-copy');
-    if (heading) heading.textContent = profileState.name ? `About ${profileState.name.split(' ')[0]}` : 'About you';
+    if (heading) heading.textContent = profileState.name ? `About ${String(profileState.name).split(' ')[0]}` : 'About you';
     if (copy) copy.textContent = profileState.bio || 'Complete your profile to share the values, interests, and everyday details that make your introduction feel real.';
   }
   updateCompletion();
@@ -172,23 +172,31 @@ const updatePrivacyFromFields = (selector) => {
 };
 
 const openEditor = () => {
+  if (!profileElements.editModal) return;
   hydrateFields('[data-profile-field]');
   hydratePrivacy('[data-profile-privacy]');
-  document.querySelector('#profile-age-input').value = calculateAge(profileState.dob);
-  document.querySelector('[data-character-count]').textContent = profileState.bio.length;
+  const ageInput = document.querySelector('#profile-age-input');
+  if (ageInput) ageInput.value = calculateAge(profileState.dob || '');
+  const charCount = document.querySelector('[data-character-count]');
+  if (charCount) charCount.textContent = String(profileState.bio || '').length;
   setOpen(profileElements.editModal, true);
 };
 
 const updateWizard = () => {
   document.querySelectorAll('[data-wizard-step]').forEach((step) => step.classList.toggle('active', Number(step.dataset.wizardStep) === wizardStep));
   document.querySelectorAll('[data-wizard-dot]').forEach((dot) => dot.classList.toggle('active', Number(dot.dataset.wizardDot) <= wizardStep));
-  document.querySelector('#wizard-back').hidden = wizardStep === 1;
-  document.querySelector('#wizard-next').classList.toggle('hidden', wizardStep === 4);
-  document.querySelector('#wizard-finish').classList.toggle('hidden', wizardStep !== 4);
-  document.querySelector('#wizard-step-label').textContent = `Step ${wizardStep} of 4`;
+  const back = document.querySelector('#wizard-back');
+  if (back) back.hidden = wizardStep === 1;
+  const next = document.querySelector('#wizard-next');
+  if (next) next.classList.toggle('hidden', wizardStep === 4);
+  const finish = document.querySelector('#wizard-finish');
+  if (finish) finish.classList.toggle('hidden', wizardStep !== 4);
+  const label = document.querySelector('#wizard-step-label');
+  if (label) label.textContent = `Step ${wizardStep} of 4`;
 };
 
 const openWizard = () => {
+  if (!profileElements.wizardModal) return;
   hydrateFields('[data-wizard-field]');
   hydratePrivacy('[data-wizard-privacy]');
   wizardStep = 1;
@@ -206,12 +214,21 @@ const readImage = (file, callback) => {
   reader.readAsDataURL(file);
 };
 
-document.querySelector('#edit-profile-button').addEventListener('click', openEditor);
-document.querySelector('#start-profile-wizard').addEventListener('click', openWizard);
-document.querySelector('#improve-profile-button').addEventListener('click', openWizard);
-document.querySelector('#manage-photos-button').addEventListener('click', () => { renderGalleryManager(); setOpen(profileElements.galleryModal, true); });
-document.querySelector('#add-gallery-photo').addEventListener('click', () => document.querySelector('#gallery-picture-upload').click());
-document.querySelector('#gallery-upload-button').addEventListener('click', () => document.querySelector('#gallery-picture-upload').click());
+document.addEventListener('click', (event) => {
+  if (event.target.closest('#edit-profile-button, [data-profile-action="edit"], [data-future-action="edit-profile"]')) {
+    event.preventDefault();
+    openEditor();
+  } else if (event.target.closest('#start-profile-wizard, #improve-profile-button, [data-profile-action="wizard"]')) {
+    event.preventDefault();
+    openWizard();
+  } else if (event.target.closest('#manage-photos-button, [data-profile-action="manage-gallery"]')) {
+    event.preventDefault();
+    renderGalleryManager();
+    if (profileElements.galleryModal) setOpen(profileElements.galleryModal, true);
+  } else if (event.target.closest('#add-gallery-photo, #gallery-upload-button')) {
+    document.querySelector('#gallery-picture-upload')?.click();
+  }
+});
 
 document.querySelectorAll('[data-close-profile-modal]').forEach((button) => button.addEventListener('click', () => setOpen(profileElements.editModal, false)));
 document.querySelectorAll('[data-close-wizard]').forEach((button) => button.addEventListener('click', () => setOpen(profileElements.wizardModal, false)));
@@ -264,15 +281,8 @@ profileElements.wizardForm.addEventListener('submit', (event) => {
   profileNotify('Your profile is ready to grow with you.');
 });
 
-document.querySelector('#profile-picture-upload').addEventListener('change', (event) => readImage(event.target.files[0], (image) => { profileState.media.avatar = image; renderProfile(); }));
-document.querySelector('#cover-picture-upload').addEventListener('change', (event) => readImage(event.target.files[0], (image) => { profileState.media.cover = image; renderProfile(); }));
-document.querySelector('#gallery-picture-upload').addEventListener('change', (event) => {
-  [...event.target.files].slice(0, 6 - profileState.media.gallery.length).forEach((file, index) => readImage(file, (image) => {
-    profileState.media.gallery.push({ id: `upload-${Date.now()}-${index}`, label: 'New moment', url: image, className: '' });
-    renderProfile();
-  }));
-  event.target.value = '';
-});
+// Note: File uploads are managed by supabase-integration.js via api.profile.upload() to ensure persistence in Supabase Storage.
+
 
 document.querySelectorAll('[data-profile-action="crop-avatar"], [data-profile-action="crop-cover"]').forEach((button) => button.addEventListener('click', () => profileNotify('Crop controls are ready for future image editor integration.')));
 
