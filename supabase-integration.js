@@ -85,16 +85,21 @@
         $('#improve-profile-button')?.closest('.compatibility-card')?.setAttribute('hidden', 'true');
         $('#add-gallery-photo')?.setAttribute('hidden', 'true');
 
-        // Replace action buttons
+        // Replace action buttons — only show Like, Save, Message (no Back to Discover or Edit Profile)
         const actionsContainer = document.querySelector('.profile-actions');
         if (actionsContainer) {
           actionsContainer.innerHTML = `
-            <a class="secondary-button" href="discover.html">← Back to Discover</a>
             <button class="secondary-button" id="member-like-action" type="button" data-member-action="like" data-member-id="${other.id}">♡ Like</button>
             <button class="secondary-button" id="member-save-action" type="button" data-member-action="save" data-member-id="${other.id}">⌑ Save</button>
             <button class="primary-button" id="member-message-action" type="button" data-member-action="message" data-member-id="${other.id}">✉ Send Message</button>
           `;
         }
+
+        // Aggressively hide all edit/owner controls on visitor profile
+        document.querySelectorAll('#edit-profile-button, #start-profile-wizard, #manage-photos-button, #improve-profile-button, #add-gallery-photo, .profile-edit-trigger, [data-action="edit-profile"]').forEach(el => {
+          el.style.display = 'none';
+          el.setAttribute('hidden', 'true');
+        });
 
         const prefSection = document.querySelector('[data-component="preferences-section"] .preference-grid');
         if (prefSection) {
@@ -482,7 +487,7 @@
       grid.innerHTML = '<div style="padding:40px;text-align:center;color:#666">Loading matches…</div>';
       try {
         const user = await api.requireUser();
-        const view = (window.location.hash || '#mutual').slice(1) || 'mutual';
+        const view = (window.location.hash || '#suggested').slice(1) || 'suggested';
 
         /* Fetch mutual matches */
         const mutualRows = await api.social.matches();
@@ -572,6 +577,15 @@
       }
     };
 
+    /* Set the initial active tab to suggested (or whatever hash says) */
+    const initialView = (window.location.hash || '#suggested').slice(1) || 'suggested';
+    if (!window.location.hash) window.location.hash = 'suggested';
+    document.querySelectorAll('.match-tab').forEach((tab) => {
+      const isActive = tab.dataset.matchView === initialView;
+      tab.classList.toggle('active', isActive);
+      tab.setAttribute('aria-selected', String(isActive));
+    });
+
     await render();
 
     /* Listen for realtime changes to matches table */
@@ -582,9 +596,23 @@
     /* Tab switching */
     document.querySelectorAll('.match-tab').forEach((tab) => tab.addEventListener('click', () => {
       window.location.hash = tab.dataset.matchView;
-      document.querySelectorAll('.match-tab').forEach((item) => item.classList.toggle('active', item === tab));
+      document.querySelectorAll('.match-tab').forEach((item) => {
+        item.classList.toggle('active', item === tab);
+        item.setAttribute('aria-selected', String(item === tab));
+      });
       setTimeout(render, 0);
     }));
+
+    /* Handle View button clicks directly on the grid (ensures it works even if document-level handler misses) */
+    grid.addEventListener('click', async (event) => {
+      const viewBtn = event.target.closest('[data-match-action="view"]');
+      if (!viewBtn) return;
+      const profileId = viewBtn.dataset.personId;
+      if (!profileId || !isUuid(profileId)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      openMemberDrawer(profileId);
+    });
 
     /* Handle unmatch action */
     grid.addEventListener('click', async (event) => {
