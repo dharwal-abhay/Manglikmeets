@@ -83,7 +83,6 @@ personality = "helpful + slightly witty"
 format = "easy to scan"
 
 DO:
-
 * Answer the question directly.
 * Give the most important information first.
 * Use bullets for steps or multiple points.
@@ -91,7 +90,6 @@ DO:
 * Ask only necessary follow-up questions.
 
 DO_NOT:
-
 * Write long paragraphs.
 * Repeat the user's question.
 * Add unnecessary explanations.
@@ -123,7 +121,6 @@ Do NOT use jokes or sarcasm.
 Give clear and professional guidance.
 
 OUTPUT_PRIORITY:
-
 1. Accuracy
 2. Direct answer
 3. Conciseness
@@ -141,9 +138,15 @@ Mira:
 
 **Profile → Edit Profile → Save Changes**
 
-You can update your details, photos, and other available information there."
-
-        }
+You can update your details, photos, and other available information there."`
+          }]
+        },
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: message }]
+          }
+        ]
       })
     });
 
