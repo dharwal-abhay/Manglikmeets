@@ -95,6 +95,27 @@
     return `${Math.floor(seconds / 86400)} days ago`;
   }
 
+  /* ── Live: load contact messages count from Supabase ────── */
+  async function loadContactMessagesCount() {
+    if (!client) return;
+    try {
+      const { count, error } = await client
+        .from('contact_messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'new');
+      if (error) {
+        console.warn('[Admin] loadContactMessagesCount error:', error.message);
+        return;
+      }
+      const metric = $('#contact-metric-count');
+      if (metric) metric.textContent = String(count ?? 0);
+      const side = $('#contact-sidebar-count');
+      if (side) side.textContent = String(count ?? 0);
+    } catch (err) {
+      console.warn('[Admin] loadContactMessagesCount exception:', err.message);
+    }
+  }
+
   /* ── Render users table ─────────────────────────────────── */
   function renderUsers() {
     const term = ($('#user-search-input')?.value || '').toLowerCase();
@@ -204,6 +225,7 @@
     renderProfiles();
     renderContent();
     loadUsers(); // live Supabase fetch
+    loadContactMessagesCount(); // live contact messages count fetch
 
     // Nav
     $$('.admin-nav-item').forEach((b) => b.addEventListener('click', () => setView(b.dataset.adminView)));

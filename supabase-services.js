@@ -435,6 +435,56 @@
     async role() { const user = await requireUser(); const { data, error } = await client.from('user_roles').select('roles(name)').eq('user_id', user.id); if (error) throw fail(error, 'load role'); return data.map((entry) => entry.roles?.name).filter(Boolean); },
     async reports({ status = 'open', from = 0, to = 29 } = {}) { return run(client.from('reports').select('*').eq('status', status).order('created_at', { ascending: false }).range(from, to), 'load reports'); }
   };
+  const contact = {
+    async submit({ name, email, subject, message }) {
+      if (noClient()) throw noClient();
+      let userId = null;
+      try {
+        const { data } = await client.auth.getUser();
+        userId = data?.user?.id || null;
+      } catch (_) {}
+
+      const payload = {
+        name: String(name || '').trim(),
+        email: String(email || '').trim().toLowerCase(),
+        subject: subject ? String(subject).trim() : null,
+        message: String(message || '').trim(),
+        status: 'new'
+      };
+      if (userId) payload.user_id = userId;
+
+      try {
+        const { data, error } = await client.from('contact_messages').insert(payload).select().single();
+        if (error) {
+          const fallback = await client.from('contact_messages').insert(payload);
+          if (fallback.error) throw fail(fallback.error, 'submit contact message');
+          return fallback.data || { success: true };
+        }
+        return data;
+      } catch (err) {
+        throw fail(err, 'submit contact message');
+      }
+    },
+    async list({ status = 'all' } = {}) {
+      await requireUser();
+      let q = client.from('contact_messages').select('*').order('created_at', { ascending: false });
+      if (status && status !== 'all') {
+        q = q.eq('status', status);
+      }
+      const { data, error } = await q;
+      if (error) throw fail(error, 'load contact messages');
+      return data || [];
+    },
+    async updateStatus(id, status) {
+      await requireUser();
+      return run(client.from('contact_messages').update({ status }).eq('id', id), 'update contact message');
+    },
+    async delete(id) {
+      await requireUser();
+      return run(client.from('contact_messages').delete().eq('id', id), 'delete contact message');
+    }
+  };
+
   const feed = {
     async list({ limit = 50 } = {}) {
       await requireUser();
@@ -449,5 +499,5 @@
     async create({ body, postType = 'discussion' }) { const user = await requireUser(); return run(client.from('community_posts').insert({ author_id: user.id, body, post_type: postType, is_published: true }).select('*, profiles!author_id(full_name, username, avatar_url)').single(), 'create post'); },
     async toggleReaction(postId) { const user = await requireUser(); const previous = await run(client.from('post_reactions').select('post_id').eq('post_id', postId).eq('user_id', user.id).maybeSingle(), 'check reaction'); if (previous) { await run(client.from('post_reactions').delete().eq('post_id', postId).eq('user_id', user.id), 'remove reaction'); return false; } await run(client.from('post_reactions').insert({ post_id: postId, user_id: user.id }), 'add reaction'); return true; }
   };
-  window.ManglikSupabase = { client, requireUser, profile, social, chat, notifications, settings, feed, auth: authApi, storage, realtime, admin, array, fromDbProfile, toDbProfile };
+  window.ManglikSupabase = { client, requireUser, profile, social, chat, notifications, settings, feed, contact, auth: authApi, storage, realtime, admin, array, fromDbProfile, toDbProfile };
 }());
