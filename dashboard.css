@@ -180,41 +180,73 @@ a.round-action{display:grid;place-items:center;text-decoration:none}
   transform: translateY(-1px);
 }
 
-/* Beautiful Visit Profile Button */
-.visit-profile-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 11px;
-  background: linear-gradient(135deg, #eb9845 0%, #d47b28 100%);
-  color: #ffffff !important;
-  font-family: "DM Sans", -apple-system, sans-serif;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  text-decoration: none !important;
-  box-shadow: 0 4px 12px rgba(235, 152, 69, 0.28);
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  border: none;
+/* Identical sizing & layout for Discover and Matches action bars */
+.member-actions, .match-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) repeat(3, 34px) !important;
+  gap: 6px !important;
+  padding: 0 16px 16px !important;
+}
+
+.member-action, .match-action {
+  display: inline-grid;
+  height: 35px;
+  min-height: 35px;
+  place-items: center;
+  padding: 0 9px;
+  border: 1px solid #eadfd5;
+  border-radius: 10px;
+  background: #fff;
+  color: #635b61;
+  font: 700 0.76rem "DM Sans", sans-serif;
   cursor: pointer;
-  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.member-action.primary, .match-action.primary {
+  border-color: transparent;
+  background: #eb9845;
+  color: #fff;
+}
+
+/* Beautiful, properly sized Visit Profile Button */
+.visit-profile-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  height: 35px !important;
+  min-height: 35px !important;
+  padding: 0 10px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, #eb9845 0%, #d47b28 100%) !important;
+  color: #ffffff !important;
+  font-family: "DM Sans", -apple-system, sans-serif !important;
+  font-size: 0.76rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+  text-decoration: none !important;
+  box-shadow: 0 3px 10px rgba(235, 152, 69, 0.25) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border: none !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
 }
 
 .visit-profile-btn:hover {
-  transform: translateY(-2px);
-  background: linear-gradient(135deg, #f5a452 0%, #de8731 100%);
-  box-shadow: 0 6px 18px rgba(235, 152, 69, 0.4);
+  transform: translateY(-1px) !important;
+  background: linear-gradient(135deg, #f5a452 0%, #de8731 100%) !important;
+  box-shadow: 0 5px 14px rgba(235, 152, 69, 0.38) !important;
   color: #ffffff !important;
 }
 
 .visit-profile-btn.drawer-visit-btn {
-  grid-column: 1 / -1;
-  width: 100%;
-  padding: 13px 20px;
-  font-size: 0.92rem;
-  min-height: 46px;
-  border-radius: 13px;
-  margin-bottom: 4px;
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  font-size: 0.9rem !important;
+  border-radius: 12px !important;
+  margin-bottom: 4px !important;
 }
