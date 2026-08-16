@@ -19,11 +19,100 @@
     const original = button.textContent; button.disabled = true; button.setAttribute('aria-busy', 'true');
     try { return await action(); } finally { button.disabled = false; button.removeAttribute('aria-busy'); button.textContent = original; }
   };
-  const age = (dob) => { if (!dob) return ''; const now = new Date(); const birth = new Date(`${dob}T00:00:00`); let value = now.getFullYear() - birth.getFullYear(); if (now < new Date(now.getFullYear(), birth.getMonth(), birth.getDate())) value -= 1; return value; };
-  const profileCard = (person) => `<article class="member-card" data-member-card="${person.id}"><div class="member-visual ${person.avatar_url ? 'has-image' : 'tone-saffron'}"${person.avatar_url ? ` style="background-image:linear-gradient(rgba(52,35,27,.08),rgba(52,35,27,.3)),url('${escape(person.avatar_url)}')"` : ''}><span class="member-compatibility">Member</span><span class="member-initials">${escape((person.full_name || '?').split(' ').map((x) => x[0]).join('').slice(0, 2))}</span></div><div class="member-content"><div class="member-name-row"><h3>${escape(person.full_name)}, ${age(person.date_of_birth) || '—'}</h3>${person.is_verified ? '<span class="verified-mark" title="Verified member">✓</span>' : ''}</div><p class="member-meta">${escape(person.city || 'Location not shared')}${person.state ? `, ${escape(person.state)}` : ''}</p><p class="member-profession">${escape(person.profession || 'Profession not shared')}</p><p class="member-bio">${escape(person.bio || 'A thoughtful member of the Manglik Meets community.')}</p></div><div class="member-actions"><button class="member-action primary" type="button" data-member-action="view" data-member-id="${person.id}">View</button><button class="member-action" type="button" data-member-action="like" data-member-id="${person.id}" aria-label="Like ${escape(person.full_name)}">♡</button><button class="member-action" type="button" data-member-action="save" data-member-id="${person.id}" aria-label="Save ${escape(person.full_name)}">⌑</button><button class="member-action" type="button" data-member-action="message" data-member-id="${person.id}" aria-label="Message ${escape(person.full_name)}">✉</button></div></article>`;
+  const age = (dob) => { if (!dob) return ''; const now = new Date(); const birth = new Date(`${dob}T00:00:00`); let value = now.getFullYear() - birth.getFullYear(); if (now < new Date(now.getFullYear(), birth.getMonth(), birth.getDate())) value -= 1; return value > 0 ? value : ''; };
+
+  const profileCard = (person) => {
+    const scoreBadge = person.compatibilityScore ? `<span class="member-compatibility">${person.compatibilityScore}% Match</span>` : '<span class="member-compatibility">Member</span>';
+    return `<article class="member-card" data-member-card="${person.id}">
+      <div class="member-visual ${person.avatar_url ? 'has-image' : 'tone-saffron'}"${person.avatar_url ? ` style="background-image:linear-gradient(rgba(52,35,27,.08),rgba(52,35,27,.3)),url('${escape(person.avatar_url)}')"` : ''}>
+        ${scoreBadge}
+        <span class="member-initials">${escape((person.full_name || '?').split(' ').map((x) => x[0]).join('').slice(0, 2))}</span>
+      </div>
+      <div class="member-content">
+        <div class="member-name-row"><h3>${escape(person.full_name)}, ${age(person.date_of_birth) || '—'}</h3>${person.is_verified ? '<span class="verified-mark" title="Verified member">✓</span>' : ''}</div>
+        <p class="member-meta">${escape(person.city || 'Location not shared')}${person.state ? `, ${escape(person.state)}` : ''}</p>
+        <p class="member-profession">${escape(person.profession || 'Profession not shared')}</p>
+        <p class="member-bio">${escape(person.bio || 'A thoughtful member of the Manglik Meets community.')}</p>
+      </div>
+      <div class="member-actions">
+        <button class="member-action primary" type="button" data-member-action="view" data-member-id="${person.id}">View</button>
+        <a class="member-action" href="dashboard.html?id=${person.id}" title="Visit ${escape(person.full_name)}'s Profile">Visit</a>
+        <button class="member-action" type="button" data-member-action="like" data-member-id="${person.id}" aria-label="Like ${escape(person.full_name)}">♡</button>
+        <button class="member-action" type="button" data-member-action="save" data-member-id="${person.id}" aria-label="Save ${escape(person.full_name)}">⌑</button>
+        <button class="member-action" type="button" data-member-action="message" data-member-id="${person.id}" aria-label="Message ${escape(person.full_name)}">✉</button>
+      </div>
+    </article>`;
+  };
 
   async function hydrateProfile() {
     if (!$('#profile-editor-form')) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const viewId = urlParams.get('id') || urlParams.get('user');
+    const currentUser = await api.requireUser().catch(() => null);
+    const isViewingOther = viewId && currentUser && viewId !== currentUser.id;
+
+    if (isViewingOther) {
+      try {
+        const other = await api.profile.get(viewId);
+        if (!other) throw new Error('Member profile not found.');
+
+        document.title = `${other.name || 'Member'} · Manglik Meets`;
+
+        if (typeof profileState !== 'undefined') {
+          Object.assign(profileState, other);
+          const media = await api.profile.mediaUrls(other.profile_media || []);
+
+          let avatarUrl = '';
+          if (other.avatar_url) {
+            avatarUrl = other.avatar_url.startsWith('http') ? other.avatar_url : await api.storage.signedUrl('profile-images', other.avatar_url);
+          }
+
+          let coverUrl = '';
+          if (other.cover_url) {
+            coverUrl = other.cover_url.startsWith('http') ? other.cover_url : await api.storage.signedUrl('profile-images', other.cover_url);
+          }
+
+          profileState.media.avatar = avatarUrl || media.find((item) => item.media_type === 'avatar')?.url || '';
+          profileState.media.cover = coverUrl || media.find((item) => item.media_type === 'cover')?.url || '';
+          profileState.media.gallery = media.filter((item) => item.media_type === 'gallery').sort((a, b) => a.sort_order - b.sort_order).map((item) => ({ id: item.id, label: item.caption || 'A shared moment', url: item.url, className: '', storage_path: item.storage_path }));
+          renderProfile();
+        }
+
+        // Hide owner-only editor triggers
+        $('#edit-profile-button')?.setAttribute('hidden', 'true');
+        $('#start-profile-wizard')?.closest('[data-component="profile-completion"]')?.setAttribute('hidden', 'true');
+        $('#manage-photos-button')?.setAttribute('hidden', 'true');
+        $('#improve-profile-button')?.closest('.compatibility-card')?.setAttribute('hidden', 'true');
+        $('#add-gallery-photo')?.setAttribute('hidden', 'true');
+
+        // Replace action buttons
+        const actionsContainer = document.querySelector('.profile-actions');
+        if (actionsContainer) {
+          actionsContainer.innerHTML = `
+            <a class="secondary-button" href="discover.html">← Back to Discover</a>
+            <button class="secondary-button" id="member-like-action" type="button" data-member-action="like" data-member-id="${other.id}">♡ Like</button>
+            <button class="secondary-button" id="member-save-action" type="button" data-member-action="save" data-member-id="${other.id}">⌑ Save</button>
+            <button class="primary-button" id="member-message-action" type="button" data-member-action="message" data-member-id="${other.id}">✉ Send Message</button>
+          `;
+        }
+
+        const prefSection = document.querySelector('[data-component="preferences-section"] .preference-grid');
+        if (prefSection) {
+          prefSection.innerHTML = `
+            <div><span>Preferred age</span><strong>${escape(other.preferredAge || 'Open to discuss')}</strong></div>
+            <div><span>Location</span><strong>${escape(other.distance || 'Open to relocate')}</strong></div>
+            <div><span>Education</span><strong>${escape(other.preferredEducation || 'Open to discuss')}</strong></div>
+            <div><span>Profession</span><strong>${escape(other.preferredProfession || 'Open to discuss')}</strong></div>
+            <div><span>Manglik preference</span><strong>${escape(other.manglikPreference || 'Open to discuss')}</strong></div>
+            <div><span>Languages</span><strong>${escape(other.preferredLanguages || other.languages || 'Open to discuss')}</strong></div>
+          `;
+        }
+      } catch (error) {
+        toast(`Could not load member profile: ${error.message}`);
+      }
+      return;
+    }
+
     try {
       const remote = await api.profile.mine();
       if (!remote) return;
@@ -33,18 +122,30 @@
 
         let avatarUrl = '';
         if (remote.avatar_url) {
-          avatarUrl = await api.storage.signedUrl('profile-images', remote.avatar_url);
+          avatarUrl = remote.avatar_url.startsWith('http') ? remote.avatar_url : await api.storage.signedUrl('profile-images', remote.avatar_url);
         }
 
         let coverUrl = '';
         if (remote.cover_url) {
-          coverUrl = await api.storage.signedUrl('profile-images', remote.cover_url);
+          coverUrl = remote.cover_url.startsWith('http') ? remote.cover_url : await api.storage.signedUrl('profile-images', remote.cover_url);
         }
 
         profileState.media.avatar = avatarUrl || media.find((item) => item.media_type === 'avatar')?.url || '';
         profileState.media.cover = coverUrl || media.find((item) => item.media_type === 'cover')?.url || '';
         profileState.media.gallery = media.filter((item) => item.media_type === 'gallery').sort((a, b) => a.sort_order - b.sort_order).map((item) => ({ id: item.id, label: item.caption || 'A shared moment', url: item.url, className: '', storage_path: item.storage_path }));
         renderProfile();
+
+        const prefSection = document.querySelector('[data-component="preferences-section"] .preference-grid');
+        if (prefSection) {
+          prefSection.innerHTML = `
+            <div><span>Age range</span><strong>${escape(profileState.preferredAge || '27 – 33')}</strong></div>
+            <div><span>Location</span><strong>${escape(profileState.distance || 'Open to relocate')}</strong></div>
+            <div><span>Education</span><strong>${escape(profileState.preferredEducation || 'Graduate or above')}</strong></div>
+            <div><span>Profession</span><strong>${escape(profileState.preferredProfession || 'Open to discuss')}</strong></div>
+            <div><span>Manglik preference</span><strong>${escape(profileState.manglikPreference || 'Open to discuss respectfully')}</strong></div>
+            <div><span>Languages</span><strong>${escape(profileState.preferredLanguages || profileState.languages || 'Hindi, English')}</strong></div>
+          `;
+        }
       }
     } catch (error) { console.warn('Profile load unavailable:', error.message); }
   }
@@ -54,7 +155,22 @@
     hydrateProfile();
     ['#profile-editor-form', '#profile-wizard-form'].forEach((selector) => {
       $(selector)?.addEventListener('submit', async () => {
-        try { await api.profile.save(profileState); toast('Profile securely saved to your account.'); } catch (error) { toast(`Profile could not be saved: ${error.message}`); }
+        try {
+          await api.profile.save(profileState);
+          toast('Profile securely saved to your account.');
+          // Re-render preferences on dashboard
+          const prefSection = document.querySelector('[data-component="preferences-section"] .preference-grid');
+          if (prefSection) {
+            prefSection.innerHTML = `
+              <div><span>Age range</span><strong>${escape(profileState.preferredAge || '27 – 33')}</strong></div>
+              <div><span>Location</span><strong>${escape(profileState.distance || 'Open to relocate')}</strong></div>
+              <div><span>Education</span><strong>${escape(profileState.preferredEducation || 'Graduate or above')}</strong></div>
+              <div><span>Profession</span><strong>${escape(profileState.preferredProfession || 'Open to discuss')}</strong></div>
+              <div><span>Manglik preference</span><strong>${escape(profileState.manglikPreference || 'Open to discuss respectfully')}</strong></div>
+              <div><span>Languages</span><strong>${escape(profileState.preferredLanguages || profileState.languages || 'Hindi, English')}</strong></div>
+            `;
+          }
+        } catch (error) { toast(`Profile could not be saved: ${error.message}`); }
       });
     });
 
@@ -101,6 +217,7 @@
         toast(`Photo upload failed: ${error.message}`);
       }
     }, true);
+
     $('#gallery-manager-list')?.addEventListener('click', (event) => {
       const row = event.target.closest('[data-gallery-id]'); const item = profileState.media.gallery.find((photo) => photo.id === row?.dataset.galleryId);
       if (!item) return;
@@ -149,7 +266,15 @@
     try {
       const filters = currentFilters();
       const currentUser = await api.requireUser().catch(() => null);
-      let result = await api.profile.search({ query: input?.value || '', filters, limit: 100 });
+      const isCustomSearch = (input?.value || '').trim().length > 0 || Object.keys(filters).length > 0;
+      let result = [];
+
+      if (!isCustomSearch && api.social?.recommendations) {
+        result = await api.social.recommendations({ limit: 50 });
+      } else {
+        result = await api.profile.search({ query: input?.value || '', filters, limit: 100 });
+      }
+
       if (currentUser) result = result.filter((p) => p.id !== currentUser.id);
 
       const cardsData = await Promise.all(result.map(async (person) => {
@@ -164,7 +289,7 @@
       recommendedGrid.innerHTML = html;
 
       if (compatibleGrid) {
-        compatibleGrid.innerHTML = cardsData.length > 1 ? cardsData.slice().reverse().map(profileCard).join('') : html;
+        compatibleGrid.innerHTML = cardsData.length > 1 ? cardsData.slice().sort((a,b) => (b.compatibilityScore || 85) - (a.compatibilityScore || 85)).map(profileCard).join('') : html;
       }
       if (nearbyList) {
         nearbyList.innerHTML = cardsData.slice(0, 5).map(profileCard).join('');
@@ -182,6 +307,7 @@
       recommendedGrid.removeAttribute('aria-busy');
     }
   }
+
   function bindDiscover() {
     if (!$('#discover-search-form')) return;
     $('#discover-search-form').addEventListener('submit', liveDiscover, true);
@@ -249,9 +375,10 @@
         </div>
         <p class="drawer-bio">${bio}</p>
         <div class="drawer-actions">
+          <a class="member-action primary" href="dashboard.html?id=${person.id}" id="drawer-visit-profile">Visit Profile →</a>
           <button class="member-action" type="button" data-member-action="like" data-member-id="${person.id}">♡ Like</button>
           <button class="member-action" type="button" data-member-action="save" data-member-id="${person.id}">⌑ Save</button>
-          <button class="member-action primary" type="button" data-member-action="message" data-member-id="${person.id}">✉ Message</button>
+          <button class="member-action" type="button" data-member-action="message" data-member-id="${person.id}">✉ Message</button>
         </div>
       `;
     } catch (error) {
@@ -319,8 +446,11 @@
         ? `<button class="match-action" type="button" data-match-action="unmatch" data-person-id="${profile.id}" aria-label="Unmatch ${escape(profile.full_name)}">✕ Unmatch</button>`
         : `<button class="match-action" type="button" data-match-action="pass" data-person-id="${profile.id}" aria-label="Pass ${escape(profile.full_name)}">×</button>`;
 
-      return `<article class="match-card" data-match-card="${profile.id}">
+      const matchBadge = profile.compatibilityScore ? `<span class="match-score" style="position:absolute;top:10px;right:10px;background:rgba(219,144,73,.95);color:#fff;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:700">${profile.compatibilityScore}%</span>` : '';
+
+      return `<article class="match-card" data-match-card="${profile.id}" style="position:relative">
         <div class="match-visual ${hasAvatar ? 'has-image' : 'tone-saffron'}"${visualStyle}>
+          ${matchBadge}
           <span class="match-online">${profile.is_online ? '<i></i>Online' : 'Recently active'}</span>
           <span class="match-initials">${initials}</span>
         </div>
@@ -338,6 +468,7 @@
         </div>
         <div class="match-actions">
           <button class="match-action primary" type="button" data-match-action="view" data-person-id="${profile.id}">View</button>
+          <a class="match-action" href="dashboard.html?id=${profile.id}" title="Visit Profile">Visit</a>
           <button class="match-action" type="button" data-match-action="like" data-person-id="${profile.id}">♡</button>
           ${unmatchBtn}
           <button class="match-action" type="button" data-match-action="save" data-person-id="${profile.id}">⌑</button>
@@ -360,15 +491,19 @@
         let pendingRows = [];
         try { pendingRows = await api.social.pendingLikes(); } catch (e) { console.warn('Pending likes unavailable:', e.message); }
 
-        /* Fetch suggested profiles (everyone not already matched or pending, filtered by opposite gender) */
+        /* Fetch suggested profiles using intelligent recommendation engine */
         let suggestedProfiles = [];
         try {
-          const opp = await getOppositeGender();
-          const filters = opp ? { gender: opp } : {};
-          const allProfiles = await api.profile.search({ filters, limit: 50 });
-          const matchedIds = new Set(mutualRows.map((r) => r.user_one_id === user.id ? r.user_two_id : r.user_one_id));
-          const pendingIds = new Set(pendingRows.map((r) => r.user_one_id || r.user_id));
-          suggestedProfiles = (allProfiles || []).filter((p) => p.id !== user.id && !matchedIds.has(p.id) && !pendingIds.has(p.id));
+          if (api.social?.recommendations) {
+            suggestedProfiles = await api.social.recommendations({ limit: 40 });
+          } else {
+            const opp = await getOppositeGender();
+            const filters = opp ? { gender: opp } : {};
+            const allProfiles = await api.profile.search({ filters, limit: 50 });
+            const matchedIds = new Set(mutualRows.map((r) => r.user_one_id === user.id ? r.user_two_id : r.user_one_id));
+            const pendingIds = new Set(pendingRows.map((r) => r.user_one_id || r.user_id));
+            suggestedProfiles = (allProfiles || []).filter((p) => p.id !== user.id && !matchedIds.has(p.id) && !pendingIds.has(p.id));
+          }
         } catch (e) { console.warn('Suggested profiles unavailable:', e.message); }
 
         /* Resolve avatars for all profile sets */
@@ -985,5 +1120,37 @@
     });
   }
 
-  bindProfile(); bindDiscover(); bindSocialActions(); bindMatches(); bindNotifications(); bindSettings(); bindFeed(); bindMessages();
+  async function bindDashboardSuggestions() {
+    const sideCard = document.querySelector('[data-component="suggested-matches"]');
+    if (!sideCard) return;
+    try {
+      const recs = api.social?.recommendations ? await api.social.recommendations({ limit: 4 }) : [];
+      if (!recs?.length) return;
+      const existingRows = sideCard.querySelectorAll('.match-row');
+      existingRows.forEach(el => el.remove());
+
+      const listHtml = recs.map(person => {
+        const inits = escape((person.full_name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase());
+        const pAge = age(person.date_of_birth) || '—';
+        const pCity = escape(person.city || 'India');
+        const pProf = escape(person.profession || 'Member');
+        return `
+          <article class="match-row" data-user-id="${person.id}">
+            <div class="profile-avatar mini blue">${inits}</div>
+            <div>
+              <strong><a href="dashboard.html?id=${person.id}" style="color:inherit;text-decoration:none">${escape(person.full_name)}</a> ${person.is_online ? '<i class="online-dot"></i>' : ''}</strong>
+              <span>${pAge} · ${pCity} · ${pProf}</span>
+              <small>${person.compatibilityScore || 88}% compatibility</small>
+            </div>
+            <a class="round-action" href="dashboard.html?id=${person.id}" aria-label="Visit ${escape(person.full_name)}">♡</a>
+          </article>
+        `;
+      }).join('');
+      sideCard.insertAdjacentHTML('beforeend', listHtml);
+    } catch (e) {
+      console.warn('[Dashboard suggestions note]:', e.message);
+    }
+  }
+
+  bindProfile(); bindDashboardSuggestions(); bindDiscover(); bindSocialActions(); bindMatches(); bindNotifications(); bindSettings(); bindFeed(); bindMessages();
 }());

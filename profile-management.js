@@ -247,7 +247,7 @@ document.querySelector('[data-profile-field="bio"]').addEventListener('input', (
   document.querySelector('[data-character-count]').textContent = event.target.value.length;
 });
 
-profileElements.editorForm.addEventListener('submit', (event) => {
+profileElements.editorForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const activePanel = profileElements.editorForm.querySelector('.editor-panel.active');
   if (!validateSection(activePanel)) return;
@@ -255,7 +255,18 @@ profileElements.editorForm.addEventListener('submit', (event) => {
   updatePrivacyFromFields('[data-profile-privacy]');
   renderProfile();
   setOpen(profileElements.editModal, false);
-  profileNotify('Profile saved successfully.');
+
+  if (window.ManglikSupabase?.profile?.save) {
+    try {
+      await window.ManglikSupabase.profile.save(profileState);
+      profileNotify('Profile saved successfully.');
+    } catch (err) {
+      console.error('[Profile save error]:', err);
+      profileNotify(`Could not save profile: ${err.message}`);
+    }
+  } else {
+    profileNotify('Profile saved successfully.');
+  }
 });
 
 document.querySelector('#wizard-next').addEventListener('click', () => {
@@ -271,14 +282,25 @@ document.querySelector('#wizard-back').addEventListener('click', () => {
   updateWizard();
 });
 
-profileElements.wizardForm.addEventListener('submit', (event) => {
+profileElements.wizardForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!validateSection(document.querySelector('[data-wizard-step="4"]'))) return;
   updateStateFromFields('[data-wizard-field]');
   updatePrivacyFromFields('[data-wizard-privacy]');
   renderProfile();
   setOpen(profileElements.wizardModal, false);
-  profileNotify('Your profile is ready to grow with you.');
+
+  if (window.ManglikSupabase?.profile?.save) {
+    try {
+      await window.ManglikSupabase.profile.save(profileState);
+      profileNotify('Your profile is ready to grow with you.');
+    } catch (err) {
+      console.error('[Wizard save error]:', err);
+      profileNotify(`Could not save profile: ${err.message}`);
+    }
+  } else {
+    profileNotify('Your profile is ready to grow with you.');
+  }
 });
 
 // Note: File uploads are managed by supabase-integration.js via api.profile.upload() to ensure persistence in Supabase Storage.

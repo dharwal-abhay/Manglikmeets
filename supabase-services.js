@@ -11,31 +11,209 @@
   /* Derive the base URL at runtime so redirects work on any deployment (GitHub Pages, Netlify, etc.) without hardcoding. */
   const baseUrl = () => `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}`;
   const array = (value) => Array.isArray(value) ? value : String(value || '').split(',').map((v) => v.trim()).filter(Boolean);
+
+  const toDbPreferences = (state) => {
+    let minAge = null;
+    let maxAge = null;
+    if (state.preferredAge) {
+      const match = String(state.preferredAge).match(/(\d+)\s*[-–—]\s*(\d+)/);
+      if (match) {
+        minAge = parseInt(match[1], 10);
+        maxAge = parseInt(match[2], 10);
+      }
+    }
+    return {
+      preferred_age: state.preferredAge || null,
+      preferred_age_min: minAge,
+      preferred_age_max: maxAge,
+      preferred_religion: state.preferredReligion || null,
+      preferred_profession: state.preferredProfession || null,
+      preferred_education: state.preferredEducation || null,
+      preferred_height: state.preferredHeight || null,
+      manglik_preference: state.manglikPreference || null,
+      distance: state.distance || null,
+      preferred_languages: array(state.preferredLanguages)
+    };
+  };
+
+  const fromDbPreferences = (p) => !p ? {} : ({
+    preferredAge: p.preferred_age || (p.preferred_age_min && p.preferred_age_max ? `${p.preferred_age_min}–${p.preferred_age_max}` : ''),
+    preferredReligion: p.preferred_religion || '',
+    preferredProfession: p.preferred_profession || '',
+    preferredEducation: p.preferred_education || '',
+    preferredHeight: p.preferred_height || '',
+    manglikPreference: p.manglik_preference || '',
+    distance: p.distance || '',
+    preferredLanguages: Array.isArray(p.preferred_languages) ? p.preferred_languages.join(', ') : (p.preferred_languages || '')
+  });
+
   const toDbProfile = (state) => {
     const payload = {
-      full_name: state.name ?? state.full_name, username: state.username?.toLowerCase() || null, date_of_birth: state.dob || state.date_of_birth || null,
-      gender: state.gender || null, height: state.height || null, weight: state.weight || null, religion: state.religion || null, caste: state.caste || null,
-      manglik_status: state.manglikStatus || state.manglik_status || null, profession: state.profession || null, education: state.education || null,
-      income: state.income || null, languages: array(state.languages), bio: state.bio || null, interests: array(state.interests), hobbies: array(state.hobbies),
-      personality_traits: array(state.personalityTraits || state.personality_traits), smoking: state.smoking || null, drinking: state.drinking || null,
-      food_preference: state.foodPreference || state.food_preference || null, fitness: state.fitness || null, pets: state.pets || null,
-      looking_for: state.lookingFor || state.looking_for || null, marriage_timeline: state.marriageTimeline || state.marriage_timeline || null,
-      family_type: state.familyType || state.family_type || null, values_text: state.values || state.values_text || null, expectations: state.expectations || null,
-      city: state.city || null, state: state.state || null, mobile_number: state.mobile_number || state.mobile || null, recovery_email: state.recovery_email || null,
+      full_name: state.name ?? state.full_name,
+      username: state.username ? String(state.username).toLowerCase().trim() : null,
+      date_of_birth: state.dob || state.date_of_birth || null,
+      gender: state.gender || null,
+      height: state.height || null,
+      weight: state.weight || null,
+      religion: state.religion || null,
+      caste: state.caste || null,
+      manglik_status: state.manglikStatus || state.manglik_status || null,
+      profession: state.profession || null,
+      education: state.education || null,
+      income: state.income || null,
+      languages: array(state.languages),
+      bio: state.bio || null,
+      interests: array(state.interests),
+      hobbies: array(state.hobbies),
+      personality_traits: array(state.personalityTraits || state.personality_traits),
+      smoking: state.smoking || null,
+      drinking: state.drinking || null,
+      food_preference: state.foodPreference || state.food_preference || null,
+      fitness: state.fitness || null,
+      pets: state.pets || null,
+      looking_for: state.lookingFor || state.looking_for || null,
+      marriage_timeline: state.marriageTimeline || state.marriage_timeline || null,
+      family_type: state.familyType || state.family_type || null,
+      values_text: state.values || state.values_text || null,
+      expectations: state.expectations || null,
+      city: state.city || null,
+      state: state.state || null,
+      mobile_number: state.mobile_number || state.mobile || null,
+      recovery_email: state.recovery_email || null,
       private_profile: state.private_profile ?? !!state.privacy?.privateProfile,
-      hide_age: state.hide_age ?? !!state.privacy?.hideAge, hide_city: state.hide_city ?? !!state.privacy?.hideCity, hide_profession: state.hide_profession ?? !!state.privacy?.hideProfession,
-      hide_last_seen: state.hide_last_seen ?? !!state.privacy?.hideLastSeen, hide_online_status: state.hide_online_status ?? !!state.privacy?.hideOnlineStatus
+      hide_age: state.hide_age ?? !!state.privacy?.hideAge,
+      hide_city: state.hide_city ?? !!state.privacy?.hideCity,
+      hide_profession: state.hide_profession ?? !!state.privacy?.hideProfession,
+      hide_last_seen: state.hide_last_seen ?? !!state.privacy?.hideLastSeen,
+      hide_online_status: state.hide_online_status ?? !!state.privacy?.hideOnlineStatus
     };
     if (state.avatar_url) payload.avatar_url = state.avatar_url;
     if (state.cover_url) payload.cover_url = state.cover_url;
     return payload;
   };
-  const fromDbProfile = (p) => !p ? null : ({ ...p, avatar_url: p.avatar_url || '', cover_url: p.cover_url || '', name: p.full_name || '', dob: p.date_of_birth || '', manglikStatus: p.manglik_status || '', foodPreference: p.food_preference || '', personalityTraits: (p.personality_traits || []).join(', '), lookingFor: p.looking_for || '', marriageTimeline: p.marriage_timeline || '', familyType: p.family_type || '', values: p.values_text || '', languages: (p.languages || []).join(', '), interests: (p.interests || []).join(', '), hobbies: (p.hobbies || []).join(', '), privacy: { privateProfile: p.private_profile, hideAge: p.hide_age, hideCity: p.hide_city, hideProfession: p.hide_profession, hideLastSeen: p.hide_last_seen, hideOnlineStatus: p.hide_online_status } });
+
+  const fromDbProfile = (p) => !p ? null : ({
+    ...p,
+    id: p.id,
+    avatar_url: p.avatar_url || '',
+    cover_url: p.cover_url || '',
+    name: p.full_name || '',
+    username: p.username || '',
+    dob: p.date_of_birth || '',
+    gender: p.gender || '',
+    height: p.height || '',
+    weight: p.weight || '',
+    religion: p.religion || '',
+    caste: p.caste || '',
+    manglikStatus: p.manglik_status || '',
+    profession: p.profession || '',
+    education: p.education || '',
+    income: p.income || '',
+    languages: Array.isArray(p.languages) ? p.languages.join(', ') : (p.languages || ''),
+    bio: p.bio || '',
+    interests: Array.isArray(p.interests) ? p.interests.join(', ') : (p.interests || ''),
+    hobbies: Array.isArray(p.hobbies) ? p.hobbies.join(', ') : (p.hobbies || ''),
+    personalityTraits: Array.isArray(p.personality_traits) ? p.personality_traits.join(', ') : (p.personality_traits || ''),
+    smoking: p.smoking || '',
+    drinking: p.drinking || '',
+    foodPreference: p.food_preference || '',
+    fitness: p.fitness || '',
+    pets: p.pets || '',
+    lookingFor: p.looking_for || '',
+    marriageTimeline: p.marriage_timeline || '',
+    familyType: p.family_type || '',
+    values: p.values_text || '',
+    expectations: p.expectations || '',
+    city: p.city || '',
+    state: p.state || '',
+    privacy: {
+      privateProfile: !!p.private_profile,
+      hideAge: !!p.hide_age,
+      hideCity: !!p.hide_city,
+      hideProfession: !!p.hide_profession,
+      hideLastSeen: !!p.hide_last_seen,
+      hideOnlineStatus: !!p.hide_online_status
+    }
+  });
+
   const profile = {
-    async mine() { const user = await requireUser(); return fromDbProfile(await run(client.from('profiles').select('*, profile_media(*)').eq('id', user.id).maybeSingle(), 'load profile')); },
-    async save(state) { const user = await requireUser(); const payload = { id: user.id, ...toDbProfile(state) }; return fromDbProfile(await run(client.from('profiles').upsert(payload).select().single(), 'save profile')); },
-    async patch(values) { const user = await requireUser(); return fromDbProfile(await run(client.from('profiles').update(values).eq('id', user.id).select().single(), 'update profile')); },
-    async search({ query = '', filters = {}, limit = 100, from = 0 } = {}) { await requireUser(); let request = client.from('profiles').select('id, full_name, username, date_of_birth, gender, city, state, profession, education, religion, interests, languages, bio, manglik_status, avatar_url, cover_url, is_verified, is_online, last_active_at, created_at, profile_media(*)').order('created_at', { ascending: false }).range(from, from + limit - 1); const term = query.trim().replace(/[,%()]/g, ''); if (term) request = request.or(`full_name.ilike.%${term}%,username.ilike.%${term}%,city.ilike.%${term}%,state.ilike.%${term}%,profession.ilike.%${term}%,education.ilike.%${term}%,religion.ilike.%${term}%`); if (filters.gender) request = request.ilike('gender', `%${filters.gender}%`); if (filters.religion) request = request.eq('religion', filters.religion); if (filters.manglik) request = request.eq('manglik_status', filters.manglik); if (filters.profession) request = request.ilike('profession', `%${filters.profession}%`); if (filters.education) request = request.ilike('education', `%${filters.education}%`); if (filters.income) request = request.eq('income', filters.income); if (filters.verifiedOnly) request = request.eq('is_verified', true); if (filters.onlineOnly) request = request.eq('is_online', true); if (filters.recentlyActive) request = request.gte('last_active_at', new Date(Date.now() - 30 * 86400000).toISOString()); if (filters.ageMin || filters.ageMax) { const today = new Date(); if (filters.ageMin) { const latest = new Date(today.getFullYear() - Number(filters.ageMin), today.getMonth(), today.getDate()).toISOString().slice(0, 10); request = request.lte('date_of_birth', latest); } if (filters.ageMax) { const earliest = new Date(today.getFullYear() - Number(filters.ageMax) - 1, today.getMonth(), today.getDate() + 1).toISOString().slice(0, 10); request = request.gte('date_of_birth', earliest); } } return run(request, 'search profiles'); },
+    async mine() {
+      const user = await requireUser();
+      const profRow = await run(client.from('profiles').select('*, profile_media(*)').eq('id', user.id).maybeSingle(), 'load profile');
+      if (!profRow) return null;
+      const prof = fromDbProfile(profRow);
+      try {
+        const prefRow = await run(client.from('partner_preferences').select('*').eq('user_id', user.id).maybeSingle(), 'load partner preferences');
+        if (prefRow) {
+          Object.assign(prof, fromDbPreferences(prefRow));
+        }
+      } catch (e) {
+        console.warn('[Partner preferences load note]:', e.message);
+      }
+      return prof;
+    },
+    async get(idOrUsername) {
+      if (!idOrUsername) return null;
+      const isUuidStr = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idOrUsername);
+      let query = client.from('profiles').select('*, profile_media(*)');
+      query = isUuidStr ? query.eq('id', idOrUsername) : query.eq('username', idOrUsername);
+      const { data, error } = await query.maybeSingle();
+      if (error) throw fail(error, 'load member profile');
+      if (!data) return null;
+      const prof = fromDbProfile(data);
+      try {
+        const { data: prefRow } = await client.from('partner_preferences').select('*').eq('user_id', data.id).maybeSingle();
+        if (prefRow) {
+          Object.assign(prof, fromDbPreferences(prefRow));
+        }
+      } catch (_) {}
+      return prof;
+    },
+    async save(state) {
+      const user = await requireUser();
+      const payload = { id: user.id, ...toDbProfile(state), updated_at: new Date().toISOString() };
+      const savedProfile = fromDbProfile(await run(client.from('profiles').upsert(payload).select().single(), 'save profile'));
+
+      try {
+        const prefPayload = { user_id: user.id, ...toDbPreferences(state), updated_at: new Date().toISOString() };
+        await client.from('partner_preferences').upsert(prefPayload, { onConflict: 'user_id' });
+      } catch (e) {
+        console.warn('[Partner preferences save note]:', e.message);
+      }
+
+      return savedProfile;
+    },
+    async patch(values) {
+      const user = await requireUser();
+      return fromDbProfile(await run(client.from('profiles').update(values).eq('id', user.id).select().single(), 'update profile'));
+    },
+    async search({ query = '', filters = {}, limit = 100, from = 0 } = {}) {
+      await requireUser();
+      let request = client.from('profiles').select('id, full_name, username, date_of_birth, gender, city, state, profession, education, religion, interests, languages, bio, manglik_status, avatar_url, cover_url, is_verified, is_online, last_active_at, created_at, profile_media(*)').order('created_at', { ascending: false }).range(from, from + limit - 1);
+      const term = query.trim().replace(/[,%()]/g, '');
+      if (term) request = request.or(`full_name.ilike.%${term}%,username.ilike.%${term}%,city.ilike.%${term}%,state.ilike.%${term}%,profession.ilike.%${term}%,education.ilike.%${term}%,religion.ilike.%${term}%`);
+      if (filters.gender) request = request.ilike('gender', `%${filters.gender}%`);
+      if (filters.religion) request = request.eq('religion', filters.religion);
+      if (filters.manglik) request = request.eq('manglik_status', filters.manglik);
+      if (filters.profession) request = request.ilike('profession', `%${filters.profession}%`);
+      if (filters.education) request = request.ilike('education', `%${filters.education}%`);
+      if (filters.income) request = request.eq('income', filters.income);
+      if (filters.verifiedOnly) request = request.eq('is_verified', true);
+      if (filters.onlineOnly) request = request.eq('is_online', true);
+      if (filters.recentlyActive) request = request.gte('last_active_at', new Date(Date.now() - 30 * 86400000).toISOString());
+      if (filters.ageMin || filters.ageMax) {
+        const today = new Date();
+        if (filters.ageMin) {
+          const latest = new Date(today.getFullYear() - Number(filters.ageMin), today.getMonth(), today.getDate()).toISOString().slice(0, 10);
+          request = request.lte('date_of_birth', latest);
+        }
+        if (filters.ageMax) {
+          const earliest = new Date(today.getFullYear() - Number(filters.ageMax) - 1, today.getMonth(), today.getDate() + 1).toISOString().slice(0, 10);
+          request = request.gte('date_of_birth', earliest);
+        }
+      }
+      return run(request, 'search profiles');
+    },
     async upload(file, type, sortOrder = 0) {
       const user = await requireUser();
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -205,6 +383,133 @@
           user_one: prof, user_two: null, matched_user: null
         }));
       } catch (e) { console.warn('[Pending likes]:', e.message); return []; }
+    },
+    async recommendations({ limit = 30 } = {}) {
+      const user = await requireUser();
+      try {
+        const { data: myProfile } = await client.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        const { data: myPrefs } = await client.from('partner_preferences').select('*').eq('user_id', user.id).maybeSingle();
+
+        const myGender = (myProfile?.gender || '').toLowerCase().trim();
+        let targetGender = null;
+        if (myGender === 'male' || myGender === 'man' || myGender === 'm') targetGender = 'female';
+        else if (myGender === 'female' || myGender === 'woman' || myGender === 'f') targetGender = 'male';
+
+        const [matchesRes, passedRes] = await Promise.allSettled([
+          client.from('matches').select('user_one_id, user_two_id').or(`user_one_id.eq.${user.id},user_two_id.eq.${user.id}`),
+          client.from('match_actions').select('profile_id').eq('user_id', user.id).eq('action', 'pass')
+        ]);
+
+        const excludedIds = new Set([user.id]);
+        if (matchesRes.status === 'fulfilled' && matchesRes.value?.data) {
+          matchesRes.value.data.forEach((r) => {
+            if (r.user_one_id) excludedIds.add(r.user_one_id);
+            if (r.user_two_id) excludedIds.add(r.user_two_id);
+          });
+        }
+        if (passedRes.status === 'fulfilled' && passedRes.value?.data) {
+          passedRes.value.data.forEach((r) => {
+            if (r.profile_id) excludedIds.add(r.profile_id);
+          });
+        }
+
+        const { data: candidates, error } = await client.from('profiles')
+          .select('*, profile_media(*)')
+          .neq('id', user.id)
+          .neq('account_status', 'suspended')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        if (error) throw error;
+        if (!candidates?.length) return [];
+
+        const myBirthDate = myProfile?.date_of_birth ? new Date(`${myProfile.date_of_birth}T00:00:00`) : null;
+        const myAge = myBirthDate ? Math.floor((Date.now() - myBirthDate.getTime()) / (365.25 * 86400000)) : null;
+        const myInterests = new Set((myProfile?.interests || []).map(i => i.toLowerCase().trim()));
+        const myManglik = (myProfile?.manglik_status || '').toLowerCase().trim();
+
+        const scored = candidates
+          .filter((candidate) => !excludedIds.has(candidate.id))
+          .map((candidate) => {
+            let score = 50;
+
+            const cGender = (candidate.gender || '').toLowerCase().trim();
+            if (targetGender) {
+              if (cGender === targetGender || (targetGender === 'female' && (cGender === 'woman' || cGender === 'f')) || (targetGender === 'male' && (cGender === 'man' || cGender === 'm'))) {
+                score += 30;
+              } else if (cGender && cGender !== 'prefer not to say') {
+                score -= 30;
+              }
+            }
+
+            const cManglik = (candidate.manglik_status || '').toLowerCase().trim();
+            if (myManglik && cManglik) {
+              if (myManglik === cManglik) score += 15;
+              else if (myManglik.includes('manglik') && cManglik.includes('manglik')) score += 12;
+              else if (myManglik.includes('open') || cManglik.includes('open')) score += 10;
+            }
+
+            if (candidate.date_of_birth) {
+              const cBirth = new Date(`${candidate.date_of_birth}T00:00:00`);
+              const cAge = Math.floor((Date.now() - cBirth.getTime()) / (365.25 * 86400000));
+              if (myPrefs?.preferred_age_min && myPrefs?.preferred_age_max) {
+                if (cAge >= myPrefs.preferred_age_min && cAge <= myPrefs.preferred_age_max) score += 15;
+                else if (Math.abs(cAge - myPrefs.preferred_age_min) <= 2 || Math.abs(cAge - myPrefs.preferred_age_max) <= 2) score += 8;
+              } else if (myAge) {
+                const diff = Math.abs(cAge - myAge);
+                if (diff <= 3) score += 12;
+                else if (diff <= 6) score += 6;
+              }
+            }
+
+            if (myProfile?.city && candidate.city && myProfile.city.toLowerCase() === candidate.city.toLowerCase()) {
+              score += 10;
+            } else if (myProfile?.state && candidate.state && myProfile.state.toLowerCase() === candidate.state.toLowerCase()) {
+              score += 5;
+            }
+
+            if (candidate.interests?.length && myInterests.size) {
+              let overlap = 0;
+              candidate.interests.forEach(interest => {
+                if (myInterests.has(interest.toLowerCase().trim())) overlap++;
+              });
+              score += Math.min(overlap * 4, 12);
+            }
+
+            if (candidate.is_verified) score += 5;
+            if (candidate.is_online) score += 3;
+
+            const compatibilityScore = Math.max(60, Math.min(98, Math.round(score)));
+            return {
+              ...candidate,
+              compatibilityScore
+            };
+          });
+
+        scored.sort((a, b) => b.compatibilityScore - a.compatibilityScore);
+        return scored.slice(0, limit);
+      } catch (err) {
+        console.warn('[Recommendations engine note]:', err.message);
+        return [];
+      }
+    }
+  };
+
+  const partnerPreferences = {
+    async mine() {
+      const user = await requireUser();
+      const row = await run(client.from('partner_preferences').select('*').eq('user_id', user.id).maybeSingle(), 'load partner preferences');
+      return fromDbPreferences(row);
+    },
+    async save(values) {
+      const user = await requireUser();
+      const payload = { user_id: user.id, ...toDbPreferences(values), updated_at: new Date().toISOString() };
+      return run(client.from('partner_preferences').upsert(payload, { onConflict: 'user_id' }).select().single(), 'save partner preferences');
+    },
+    async get(userId) {
+      await requireUser();
+      const row = await run(client.from('partner_preferences').select('*').eq('user_id', userId).maybeSingle(), 'get partner preferences');
+      return fromDbPreferences(row);
     }
   };
   const chat = {
@@ -499,5 +804,5 @@
     async create({ body, postType = 'discussion' }) { const user = await requireUser(); return run(client.from('community_posts').insert({ author_id: user.id, body, post_type: postType, is_published: true }).select('*, profiles!author_id(full_name, username, avatar_url)').single(), 'create post'); },
     async toggleReaction(postId) { const user = await requireUser(); const previous = await run(client.from('post_reactions').select('post_id').eq('post_id', postId).eq('user_id', user.id).maybeSingle(), 'check reaction'); if (previous) { await run(client.from('post_reactions').delete().eq('post_id', postId).eq('user_id', user.id), 'remove reaction'); return false; } await run(client.from('post_reactions').insert({ post_id: postId, user_id: user.id }), 'add reaction'); return true; }
   };
-  window.ManglikSupabase = { client, requireUser, profile, social, chat, notifications, settings, feed, contact, auth: authApi, storage, realtime, admin, array, fromDbProfile, toDbProfile };
+  window.ManglikSupabase = { client, requireUser, profile, partnerPreferences, social, chat, notifications, settings, feed, contact, auth: authApi, storage, realtime, admin, array, fromDbProfile, toDbProfile, fromDbPreferences, toDbPreferences };
 }());
