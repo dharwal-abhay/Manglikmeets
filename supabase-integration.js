@@ -271,14 +271,9 @@
     try {
       const filters = currentFilters();
       const currentUser = await api.requireUser().catch(() => null);
-      const isCustomSearch = (input?.value || '').trim().length > 0 || Object.keys(filters).length > 0;
-      let result = [];
-
-      if (!isCustomSearch && api.social?.recommendations) {
-        result = await api.social.recommendations({ limit: 50 });
-      } else {
-        result = await api.profile.search({ query: input?.value || '', filters, limit: 100 });
-      }
+      
+      // Discover section shows all profiles in the community
+      let result = await api.profile.search({ query: input?.value || '', filters, limit: 100 });
 
       if (currentUser) result = result.filter((p) => p.id !== currentUser.id);
 
