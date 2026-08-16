@@ -36,7 +36,7 @@
       </div>
       <div class="member-actions">
         <button class="member-action primary" type="button" data-member-action="view" data-member-id="${person.id}">View</button>
-        <a class="member-action" href="dashboard.html?id=${person.id}" title="Visit ${escape(person.full_name)}'s Profile">Visit</a>
+        <a class="visit-profile-btn" href="dashboard.html?id=${person.id}" title="Visit ${escape(person.full_name)}'s Profile">Visit Profile →</a>
         <button class="member-action" type="button" data-member-action="like" data-member-id="${person.id}" aria-label="Like ${escape(person.full_name)}">♡</button>
         <button class="member-action" type="button" data-member-action="save" data-member-id="${person.id}" aria-label="Save ${escape(person.full_name)}">⌑</button>
         <button class="member-action" type="button" data-member-action="message" data-member-id="${person.id}" aria-label="Message ${escape(person.full_name)}">✉</button>
@@ -380,10 +380,10 @@
         </div>
         <p class="drawer-bio">${bio}</p>
         <div class="drawer-actions">
-          <a class="member-action primary" href="dashboard.html?id=${person.id}" id="drawer-visit-profile">Visit Profile →</a>
+          <a class="visit-profile-btn drawer-visit-btn" href="dashboard.html?id=${person.id}" id="drawer-visit-profile"><span>Visit Full Profile</span> <span>→</span></a>
           <button class="member-action" type="button" data-member-action="like" data-member-id="${person.id}">♡ Like</button>
           <button class="member-action" type="button" data-member-action="save" data-member-id="${person.id}">⌑ Save</button>
-          <button class="member-action" type="button" data-member-action="message" data-member-id="${person.id}">✉ Message</button>
+          <button class="member-action primary" type="button" data-member-action="message" data-member-id="${person.id}">✉ Message</button>
         </div>
       `;
     } catch (error) {
@@ -473,7 +473,7 @@
         </div>
         <div class="match-actions">
           <button class="match-action primary" type="button" data-match-action="view" data-person-id="${profile.id}">View</button>
-          <a class="match-action" href="dashboard.html?id=${profile.id}" title="Visit Profile">Visit</a>
+          <a class="visit-profile-btn" href="dashboard.html?id=${profile.id}" title="Visit ${escape(profile.full_name)}'s Profile">Visit Profile →</a>
           <button class="match-action" type="button" data-match-action="like" data-person-id="${profile.id}">♡</button>
           ${unmatchBtn}
           <button class="match-action" type="button" data-match-action="save" data-person-id="${profile.id}">⌑</button>

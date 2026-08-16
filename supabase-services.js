@@ -390,10 +390,24 @@
         const { data: myProfile } = await client.from('profiles').select('*').eq('id', user.id).maybeSingle();
         const { data: myPrefs } = await client.from('partner_preferences').select('*').eq('user_id', user.id).maybeSingle();
 
-        const myGender = (myProfile?.gender || '').toLowerCase().trim();
+        const myRawGender = (myProfile?.gender || '').toLowerCase().trim();
+        let myGenderCategory = null;
         let targetGender = null;
-        if (myGender === 'male' || myGender === 'man' || myGender === 'm') targetGender = 'female';
-        else if (myGender === 'female' || myGender === 'woman' || myGender === 'f') targetGender = 'male';
+
+        if (['male', 'man', 'm', 'groom'].includes(myRawGender)) {
+          myGenderCategory = 'male';
+          targetGender = 'female';
+        } else if (['female', 'woman', 'f', 'bride'].includes(myRawGender)) {
+          myGenderCategory = 'female';
+          targetGender = 'male';
+        }
+
+        const getCandidateGenderCategory = (g) => {
+          const s = (g || '').toLowerCase().trim();
+          if (['female', 'woman', 'f', 'bride'].includes(s)) return 'female';
+          if (['male', 'man', 'm', 'groom'].includes(s)) return 'male';
+          return null;
+        };
 
         const [matchesRes, passedRes] = await Promise.allSettled([
           client.from('matches').select('user_one_id, user_two_id').or(`user_one_id.eq.${user.id},user_two_id.eq.${user.id}`),
@@ -429,7 +443,15 @@
         const myManglik = (myProfile?.manglik_status || '').toLowerCase().trim();
 
         const scored = candidates
-          .filter((candidate) => !excludedIds.has(candidate.id))
+          .filter((candidate) => {
+            if (excludedIds.has(candidate.id)) return false;
+            const cCategory = getCandidateGenderCategory(candidate.gender);
+            // Strictly exclude same-gender matches
+            if (myGenderCategory && cCategory && myGenderCategory === cCategory) return false;
+            // Strictly enforce target gender if known
+            if (targetGender && cCategory && cCategory !== targetGender) return false;
+            return true;
+          })
           .map((candidate) => {
             let score = 50;
 
